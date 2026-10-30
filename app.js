@@ -35,6 +35,16 @@
   $('permiso').textContent = C.PERMISO_SEGOB ? 'Permiso SEGOB: ' + C.PERMISO_SEGOB : '';
   $('cTotal').textContent = fmt(C.TOTAL_BOLETOS);
 
+  /* ---------- reintenta imágenes que fallan (red móvil inestable) ---------- */
+  document.querySelectorAll('img').forEach((img) => {
+    let intentos = 0;
+    img.addEventListener('error', () => {
+      if (intentos++ >= 3) return;
+      const base = img.getAttribute('src').split('?')[0];
+      setTimeout(() => { img.src = base + '?r=' + Date.now(); }, 800 * intentos);
+    });
+  });
+
   /* ---------- nav / scroll ---------- */
   const nav = $('nav'), floatCta = $('floatCta'), buy = $('comprar');
   let buyVisible = false;

@@ -144,7 +144,7 @@ input.err{border-color:#d46a5c}
 .posters{margin-top:80px}
 .poster-row{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin:18px 0 12px}
 .poster-row a{display:block;border-radius:10px;overflow:hidden;border:1px solid var(--line-soft);aspect-ratio:2/3;transition:transform .35s var(--ease),border-color .3s}
-.poster-row img{width:100%;height:100%;object-fit:cover;object-position:top}
+.poster-row img{width:100%;height:100%;object-fit:cover;object-position:top;color:transparent;font-size:0;background:#15120e}
 .poster-row a:hover{transform:translateY(-6px);border-color:var(--line)}
 
 /* bases */
