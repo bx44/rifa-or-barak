@@ -38,11 +38,13 @@
   /* ---------- reintenta imágenes que fallan (red móvil inestable) ---------- */
   document.querySelectorAll('img').forEach((img) => {
     let intentos = 0;
-    img.addEventListener('error', () => {
+    const reintentar = () => {
       if (intentos++ >= 3) return;
       const base = img.getAttribute('src').split('?')[0];
       setTimeout(() => { img.src = base + '?r=' + Date.now(); }, 800 * intentos);
-    });
+    };
+    img.addEventListener('error', reintentar);
+    if (img.complete && img.naturalWidth === 0 && img.getAttribute('loading') !== 'lazy') reintentar();
   });
 
   /* ---------- nav / scroll ---------- */
