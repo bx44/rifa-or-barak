@@ -332,3 +332,9 @@ function webInstalarResumen() {
   ScriptApp.newTrigger('webActualizarResumen').timeBased().everyHours(1).create();
   webActualizarResumen();
 }
+
+
+/** Prueba: manda SOLO a jonathan@ben-hamu.com el correo de bienvenida de vendedor con el bloque para compartir. */
+function webPruebaCorreoVendedor() {
+  enviarCorreoBienvenidaVendedor_('Jonathan Ben-Hamu', 'jonathan@ben-hamu.com');
+}
