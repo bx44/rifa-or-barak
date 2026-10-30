@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gran Rifa Or Barak 2026 · Un solo boleto. Dos ganadores.</title>
+<meta name="description" content="Gran Rifa Or Barak 2026: un Mazda 2 para el comprador y otro Mazda 2 para quien vendió el boleto ganador. 1,000 boletos de $6,000 MXN. Sorteo 10 de diciembre de 2026.">
+<meta name="theme-color" content="#0a0908">
+<meta property="og:title" content="Un solo boleto. Dos ganadores. — Gran Rifa Or Barak 2026">
+<meta property="og:description" content="Un Mazda 2 para el comprador y otro Mazda 2 para quien vendió el boleto ganador. Sorteo 10 de diciembre de 2026.">
+<meta property="og:image" content="assets/poster-1.jpg">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/escudo-sm.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="seller-strip" id="sellerStrip" hidden>
+  Estás comprando con <strong id="sellerStripName"></strong>
+</div>
+
+<header class="nav" id="nav">
+  <a href="#" class="brand">OR&nbsp;BARAK</a>
+  <nav class="nav-links">
+    <a href="#premios">Premios</a>
+    <a href="#como">Cómo funciona</a>
+    <a href="#vendedores">Vendedores</a>
+    <a href="#bases">Bases</a>
+  </nav>
+  <a href="#comprar" class="btn btn-sm">Comprar boleto</a>
+</header>
+
+<main>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="premios">
+  <div class="beam" aria-hidden="true"></div>
+  <div class="hero-art">
+    <img src="assets/hero.jpg" alt="Escudo de Or Barak sobre muro de concreto y dos Mazda 2 iluminados" width="941" height="1120" fetchpriority="high">
+  </div>
+  <div class="hero-copy">
+    <p class="eyebrow">Gran Rifa Or Barak 2026</p>
+    <h1 class="headline">
+      <span class="line"><span class="hl-white">UN</span> SOLO BOLETO.</span>
+      <span class="line"><span class="hl-gold">DOS</span> GANADORES.</span>
+    </h1>
+    <div class="rule"></div>
+    <div class="prizes">
+      <div class="prize">
+        <svg class="ic" viewBox="0 0 48 48"><use href="#i-car"/></svg>
+        <p>UN <b>MAZDA 2</b><br>PARA EL COMPRADOR.</p>
+      </div>
+      <div class="prize-sep"></div>
+      <div class="prize">
+        <svg class="ic" viewBox="0 0 48 48"><use href="#i-car"/></svg>
+        <p>OTRO <b>MAZDA 2</b><br>PARA QUIEN VENDIÓ<br>EL BOLETO GANADOR.</p>
+      </div>
+    </div>
+    <div class="hero-cta">
+      <a href="#comprar" class="btn">Comprar boleto · $6,000 MXN</a>
+      <a href="#vendedores" class="btn btn-ghost">Quiero vender</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTADOR ================= -->
+<section class="counter reveal" id="contador">
+  <div class="counter-grid">
+    <div class="counter-main">
+      <p class="label">Boletos vendidos</p>
+      <p class="big"><span id="cSold">—</span><small> / <span id="cTotal">1,000</span></small></p>
+      <div class="bar"><div class="bar-fill" id="cBar"></div></div>
+      <p class="muted" id="cLeft">Cargando disponibilidad…</p>
+    </div>
+    <div class="counter-side">
+      <p class="label">Sorteo</p>
+      <p class="date">10 DE DICIEMBRE</p>
+      <p class="year">2026</p>
+      <div class="countdown" id="countdown">
+        <div><b id="cdD">00</b><span>días</span></div>
+        <div><b id="cdH">00</b><span>horas</span></div>
+        <div><b id="cdM">00</b><span>min</span></div>
+        <div><b id="cdS">00</b><span>seg</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CÓMO FUNCIONA ================= -->
+<section class="steps" id="como">
+  <div class="beam beam-2" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="step reveal">
+      <h2 class="gold-title">PARTICIPA</h2>
+      <p>Un boleto por $6,000 MXN.</p>
+    </div>
+    <div class="step reveal">
+      <h2 class="gold-title">COMPARTE</h2>
+      <p>Comparte la oportunidad con familiares y amigos.</p>
+    </div>
+    <div class="step reveal">
+      <h2 class="gold-title">GANA</h2>
+      <p>Si gana tu boleto, el Mazda es para ti.<br>Si gana un boleto vendido por ti, el otro Mazda es para ti.</p>
+    </div>
+  </div>
+  <img class="cars-strip" src="assets/autos.jpg" alt="Dos Mazda 2" loading="lazy" width="1023" height="300">
+</section>
+
+<!-- ================= COMPRAR ================= -->
+<section class="buy" id="comprar">
+  <div class="wrap buy-grid">
+    <div class="buy-intro reveal">
+      <p class="eyebrow">Compra en línea</p>
+      <h2 class="section-title">Tu boleto,<br><span class="g">en un minuto.</span></h2>
+      <p class="muted">Pago seguro con tarjeta a través de Stripe. Al confirmarse el pago recibes tus números de boleto en pantalla y por correo.</p>
+      <ul class="checks">
+        <li>Boleto liquidado al momento: participa por el Mazda 2.</li>
+        <li>Si alguien te recomendó, su código queda registrado: si tu boleto gana, él también.</li>
+        <li>¿Prefieres transferencia o efectivo? <a href="#" id="waTransfer" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>.</li>
+      </ul>
+    </div>
+
+    <form class="card buy-form reveal" id="buyForm" novalidate>
+      <div class="field">
+        <label for="fNombre">Nombre completo</label>
+        <input id="fNombre" name="nombre" autocomplete="name" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="fCorreo">Correo</label>
+          <input id="fCorreo" name="correo" type="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="fTel">WhatsApp</label>
+          <input id="fTel" name="telefono" type="tel" autocomplete="tel" inputmode="tel" required>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Boletos</label>
+          <div class="qty">
+            <button type="button" id="qMinus" aria-label="Menos">−</button>
+            <output id="qVal">1</output>
+            <button type="button" id="qPlus" aria-label="Más">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="fVend">Código de vendedor <span class="opt">(opcional)</span></label>
+          <input id="fVend" name="vendedor" autocapitalize="characters" spellcheck="false">
+          <p class="hint" id="vendHint"></p>
+        </div>
+      </div>
+      <label class="consent">
+        <input type="checkbox" id="fAcepto" required>
+        <span>Acepto las <a href="#bases">bases del sorteo</a> y el aviso de privacidad.</span>
+      </label>
+      <div class="total">
+        <span>Total</span>
+        <b id="totalVal">$6,000 MXN</b>
+      </div>
+      <button class="btn btn-block" id="payBtn" type="submit">
+        <svg viewBox="0 0 24 24" class="lock"><use href="#i-lock-s"/></svg>
+        Pagar con Stripe
+      </button>
+      <p class="form-msg" id="formMsg" role="alert"></p>
+      <p class="secure">Pagos procesados por Stripe. Or Barak no almacena datos de tu tarjeta.</p>
+    </form>
+  </div>
+</section>
+
+<!-- ================= VENDEDORES ================= -->
+<section class="sellers" id="vendedores">
+  <div class="wrap">
+    <div class="sellers-head reveal">
+      <p class="eyebrow">Vende y gana</p>
+      <h2 class="section-title">Si el boleto que vendiste gana,<br><span class="g">el segundo Mazda 2 es tuyo.</span></h2>
+      <p class="muted">Cada vendedor puede vender hasta 50 boletos. Para recibir el premio, el vendedor debe tener su propio boleto liquidado.</p>
+    </div>
+
+    <div class="sellers-grid">
+      <div class="card reveal">
+        <h3 class="card-title">¿Aún no eres vendedor?</h3>
+        <p class="muted">Regístrate y te enviamos tu código personal. Con él, cada boleto que vendas queda a tu nombre.</p>
+        <div class="btn-col">
+          <a class="btn" id="btnRegistro" href="#" target="_blank" rel="noopener">Registrarme como vendedor</a>
+          <a class="btn btn-ghost" id="btnWaVend" href="#" target="_blank" rel="noopener">Preguntar por WhatsApp</a>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <h3 class="card-title">Tu link de vendedor</h3>
+        <p class="muted">Escribe tu código y comparte tu link. Quien compre desde ahí queda registrado como venta tuya.</p>
+        <div class="field">
+          <label for="sCode">Tu código</label>
+          <input id="sCode" autocapitalize="characters" spellcheck="false" placeholder="Ej. JBH01">
+        </div>
+        <div class="seller-out" id="sellerOut" hidden>
+          <p class="seller-name" id="sName"></p>
+          <div class="seller-progress" id="sProgWrap" hidden>
+            <div class="bar"><div class="bar-fill" id="sBar"></div></div>
+            <p class="muted small" id="sCount"></p>
+          </div>
+          <div class="linkbox"><span id="sLink"></span></div>
+          <div class="btn-row">
+            <button class="btn btn-sm" id="sCopy" type="button">Copiar link</button>
+            <a class="btn btn-sm btn-ghost" id="sWa" target="_blank" rel="noopener">Compartir por WhatsApp</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="posters reveal">
+      <p class="label center">Material para compartir</p>
+      <div class="poster-row">
+        <a href="assets/poster-1.jpg" download="rifa-or-barak-1.jpg"><img src="assets/poster-1.jpg" alt="Poster: Un solo boleto, dos ganadores" loading="lazy"></a>
+        <a href="assets/poster-2.jpg" download="rifa-or-barak-2.jpg"><img src="assets/poster-2.jpg" alt="Poster: Participa, comparte, gana" loading="lazy"></a>
+        <a href="assets/poster-3.jpg" download="rifa-or-barak-3.jpg"><img src="assets/poster-3.jpg" alt="Poster: Bases" loading="lazy"></a>
+      </div>
+      <p class="muted small center">Toca un poster para descargarlo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BASES ================= -->
+<section class="bases" id="bases">
+  <div class="beam beam-3" aria-hidden="true"></div>
+  <div class="wrap bases-grid">
+    <div class="reveal">
+      <img class="shield" src="assets/escudo.jpg" alt="Escudo de Or Barak" loading="lazy">
+    </div>
+    <div class="reveal">
+      <h2 class="gold-title">BASES</h2>
+      <ul class="bases-list">
+        <li><svg class="ic" viewBox="0 0 48 48"><use href="#i-ticket"/></svg><span><b>1,000</b> boletos disponibles.</span></li>
+        <li><svg class="ic" viewBox="0 0 48 48"><use href="#i-user"/></svg><span>Máximo <b>50</b> boletos por vendedor.</span></li>
+        <li><svg class="ic" viewBox="0 0 48 48"><use href="#i-lock"/></svg><span>El boleto ganador deberá estar <b>liquidado</b> para reclamar el premio.</span></li>
+        <li><svg class="ic" viewBox="0 0 48 48"><use href="#i-shield"/></svg><span>El vendedor ganador deberá tener su propio boleto <b>liquidado</b> para recibir el segundo Mazda 2.</span></li>
+        <li><svg class="ic" viewBox="0 0 48 48"><use href="#i-cal"/></svg><span>Sorteo: <b>10 de diciembre de 2026</b>.</span></li>
+      </ul>
+      <a class="text-link" id="basesLink" href="#" target="_blank" rel="noopener" hidden>Leer bases completas →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="faq" id="faq">
+  <div class="wrap narrow">
+    <p class="eyebrow center">Preguntas frecuentes</p>
+    <details class="reveal"><summary>¿Cómo recibo mis números de boleto?</summary>
+      <p>Al terminar el pago verás tus números en pantalla y te llegan por correo. Si no los encuentras, <a href="#" class="js-consulta" target="_blank" rel="noopener">consulta tus boletos aquí</a>.</p></details>
+    <details class="reveal"><summary>¿Qué significa “dos ganadores”?</summary>
+      <p>Se sortea un solo boleto. Quien lo compró gana un Mazda 2, y la persona que se lo vendió gana otro Mazda 2.</p></details>
+    <details class="reveal"><summary>¿Puedo pagar en efectivo o por transferencia?</summary>
+      <p>Sí. Pídele tu boleto a un vendedor o <a href="#" class="js-wa" target="_blank" rel="noopener">escríbenos por WhatsApp</a>. Los comprobantes se envían a <span class="js-mail"></span>.</p></details>
+    <details class="reveal"><summary>¿Cuál es el destino de lo recaudado?</summary>
+      <p>Lo recaudado apoya a Or Barak, institución educativa para alumnos de secundaria y preparatoria que necesitan una escuela diferente.</p></details>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <img src="assets/escudo-sm.jpg" alt="" class="footer-shield">
+  <p class="footer-brand">OR&nbsp;BARAK</p>
+  <p class="muted small" id="permiso"></p>
+  <p class="muted small">© 2026 Or Barak · <a href="#bases">Bases</a> · <a href="#" class="js-wa" target="_blank" rel="noopener">Contacto</a></p>
+</footer>
+
+<a href="#comprar" class="float-cta" id="floatCta">Comprar boleto</a>
+
+<!-- Íconos -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-car" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M7 30v-6l4-9c.6-1.3 1.8-2 3.2-2h19.6c1.4 0 2.6.7 3.2 2l4 9v6"/><path d="M5 30h38v6H5z"/><path d="M11 24h26"/><path d="M8 36v3h5v-3M35 36v3h5v-3"/><circle cx="13" cy="30.5" r="0.5"/><path d="M11 30h4M33 30h4M21 30h6"/></g></symbol>
+    <symbol id="i-ticket" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14 6l28 28-6 6a4 4 0 0 0-6-6L8 12a4 4 0 0 0 6-6z" transform="rotate(0)"/><path d="M19 17l12 12M22 14l3 3M33 25l3 3" stroke-dasharray="2 3"/></g></symbol>
+    <symbol id="i-user" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="24" cy="16" r="8"/><path d="M8 42c0-8 7-13 16-13s16 5 16 13z" stroke-linejoin="round"/></g></symbol>
+    <symbol id="i-lock" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="10" y="21" width="28" height="21" rx="3"/><path d="M16 21v-6a8 8 0 0 1 16 0v6"/><circle cx="24" cy="30" r="3"/><path d="M24 33v4"/></g></symbol>
+    <symbol id="i-shield" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M24 5l16 6v12c0 10-7 17-16 20C15 40 8 33 8 23V11z"/><path d="M17 24l5 5 9-10"/></g></symbol>
+    <symbol id="i-cal" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><rect x="7" y="10" width="34" height="31" rx="3"/><path d="M7 18h34M15 6v8M33 6v8"/><path d="M14 25h2M20 25h2M26 25h2M32 25h2M14 31h2M20 31h2M26 31h2M32 31h2M14 36h2M20 36h2"/></g></symbol>
+    <symbol id="i-lock-s" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></g></symbol>
+  </defs>
+</svg>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

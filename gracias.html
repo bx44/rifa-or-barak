@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¡Gracias! · Gran Rifa Or Barak 2026</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a0908">
+<link rel="icon" href="assets/escudo-sm.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .thanks{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:60px 20px;text-align:center}
+  .thanks-in{max-width:720px;width:100%}
+  .thanks .shield{max-width:160px;margin:0 auto 26px}
+  .tickets{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:34px 0}
+  .tk{position:relative;min-width:150px;padding:20px 26px 18px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,rgba(210,164,92,.12),rgba(210,164,92,.03));animation:fadeUp .8s var(--ease) both}
+  .tk::before,.tk::after{content:"";position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:var(--bg2);border:1px solid var(--line);transform:translateY(-50%)}
+  .tk::before{left:-10px;clip-path:inset(0 0 0 50%)} .tk::after{right:-10px;clip-path:inset(0 50% 0 0)}
+  .tk small{display:block;font-size:11px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
+  .tk b{display:block;font-size:40px;font-weight:400;letter-spacing:.08em;color:var(--gold-hi);font-variant-numeric:tabular-nums}
+  .spinner{width:38px;height:38px;border:2px solid var(--line-soft);border-top-color:var(--gold);border-radius:50%;margin:30px auto;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:10px}
+</style>
+</head>
+<body>
+<section class="thanks hero">
+  <div class="beam" aria-hidden="true"></div>
+  <div class="thanks-in">
+    <img class="shield" src="assets/escudo.jpg" alt="Escudo de Or Barak">
+    <p class="eyebrow">Gran Rifa Or Barak 2026</p>
+    <h1 class="section-title" id="title">Confirmando tu pago…</h1>
+    <p class="muted" id="sub">Esto toma unos segundos.</p>
+    <div class="spinner" id="spin"></div>
+    <div class="tickets" id="tickets"></div>
+    <div class="actions" id="actions" hidden>
+      <a class="btn" id="share" target="_blank" rel="noopener">Compartir por WhatsApp</a>
+      <a class="btn btn-ghost" href="./">Volver al inicio</a>
+    </div>
+    <p class="muted small" style="margin-top:40px">Sorteo: 10 de diciembre de 2026 · OR BARAK</p>
+  </div>
+</section>
+<script src="config.js"></script>
+<script>
+(function(){
+  const C = window.RIFA, $ = (id) => document.getElementById(id);
+  const sid = new URLSearchParams(location.search).get('session_id');
+  const home = location.origin + location.pathname.replace(/gracias\.html$/, '');
+  $('share').href = 'https://wa.me/?text=' + encodeURIComponent('¡Ya tengo mi boleto de la ' + C.NOMBRE + '! Un solo boleto, dos ganadores: dos Mazda 2. ' + home);
+
+  function done(title, sub) {
+    $('spin').hidden = true; $('title').textContent = title; $('sub').textContent = sub; $('actions').hidden = false;
+  }
+  if (!C.API_URL || !sid) {
+    return done('¡Gracias por tu compra!', 'Tu pago fue recibido. Te enviaremos tus números de boleto por correo.');
+  }
+  let tries = 0;
+  async function poll() {
+    tries++;
+    try {
+      const r = await (await fetch(C.API_URL + '?action=sesion&id=' + encodeURIComponent(sid))).json();
+      if (r.ok && r.estado === 'pagado') {
+        $('tickets').innerHTML = r.folios.map((f, i) =>
+          '<div class="tk" style="animation-delay:' + (i * 0.08) + 's"><small>Boleto</small><b>' + f + '</b></div>').join('');
+        return done('¡Gracias, ' + (r.nombre || '').split(' ')[0] + '!',
+          (r.folios.length > 1 ? 'Estos son tus números.' : 'Este es tu número.') + ' También te los enviamos por correo.');
+      }
+      if (r.ok && r.estado === 'pendiente' && tries < 15) return setTimeout(poll, 2500);
+      if (!r.ok && tries < 4) return setTimeout(poll, 2500);
+      done('Pago en proceso', 'En cuanto se confirme te enviaremos tus números por correo.');
+    } catch (e) {
+      if (tries < 4) return setTimeout(poll, 2500);
+      done('¡Gracias por tu compra!', 'Te enviaremos tus números de boleto por correo.');
+    }
+  }
+  poll();
+})();
+</script>
+</body>
+</html>
