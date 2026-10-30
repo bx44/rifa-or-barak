@@ -201,3 +201,52 @@ function webProbar() {
   if (b) Logger.log('Link de pago folio ' + b[0] + ': ' + webUrlPago_(b[0]));
   Logger.log('Vendedores: ' + webVendedores_().map(function (v) { return v.codigo + ' ' + v.nombre; }).join(' | '));
 }
+
+/* ---------- MATERIAL PARA COMPARTIR en los correos al vendedor ---------- */
+const WEB_SITIO_URL = 'https://bx44.github.io/rifa-or-barak/';
+
+function webLinkVendedor_(codigo) {
+  return WEB_SITIO_URL + '?v=' + encodeURIComponent(codigo);
+}
+
+// Recibe el HTML ya armado de un correo al vendedor y le agrega al final el bloque
+// con su link personal, su código, botón de WhatsApp y los 3 posters.
+function webConCompartir_(html, correoVendedor) {
+  try {
+    const v = buscarVendedorPorCorreo_(String(correoVendedor || '').trim().toLowerCase());
+    if (!v) return html;
+    const codigo = webCodigoVendedor_(v.nombre, v.celular);
+    const link = webLinkVendedor_(codigo);
+    const textoWa = 'Un solo boleto. Dos ganadores. 🚗🚗\n' +
+      'Participa en la ' + NOMBRE_RIFA + ': un Mazda 2 para el comprador y otro Mazda 2 para quien vende el boleto ganador. ' +
+      'Sorteo 10 de diciembre.\n' + link;
+    const wa = 'https://wa.me/?text=' + encodeURIComponent(textoWa);
+    const poster = function (n, alt) {
+      const src = WEB_SITIO_URL + 'assets/poster-' + n + '.jpg';
+      return '<td style="padding:4px;width:33%" valign="top"><a href="' + src + '" target="_blank">' +
+        '<img src="' + src + '" alt="' + alt + '" width="160" style="display:block;width:100%;max-width:160px;height:auto;border-radius:8px;border:1px solid #5a4526"></a>' +
+        '<div style="font-size:11px;color:#a59c8f;text-align:center;padding-top:4px"><a href="' + src + '" target="_blank" style="color:#d2a45c">Descargar</a></div></td>';
+    };
+    const bloque =
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0 0"><tr><td align="center">' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#0f0c09;border:1px solid #5a4526;border-radius:14px;font-family:Helvetica,Arial,sans-serif;color:#ece6dc">' +
+      '<tr><td style="padding:26px 22px 8px;text-align:center">' +
+      '<div style="font-size:12px;letter-spacing:4px;color:#d2a45c">TU MATERIAL PARA COMPARTIR</div>' +
+      '<div style="font-size:20px;margin:12px 0 4px;color:#ffffff">Un solo boleto. <span style="color:#d2a45c">Dos ganadores.</span></div>' +
+      '<div style="font-size:14px;color:#a59c8f;margin-bottom:16px">Quien compre desde tu link queda registrado como venta tuya.</div>' +
+      '<div style="font-size:13px;color:#a59c8f">Tu código: <b style="color:#f2d6a0;letter-spacing:2px">' + codigo + '</b></div>' +
+      '<div style="margin:10px 0 18px;padding:12px;border:1px dashed #8a6a3a;border-radius:10px;font-size:14px;word-break:break-all"><a href="' + link + '" style="color:#f2d6a0;text-decoration:none">' + link + '</a></div>' +
+      '<a href="' + wa + '" style="display:inline-block;background:#c4914a;color:#1a1209;text-decoration:none;padding:13px 24px;border-radius:30px;letter-spacing:1px;font-size:13px;font-weight:bold">COMPARTIR POR WHATSAPP</a>' +
+      '</td></tr>' +
+      '<tr><td style="padding:16px 14px 22px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+      poster(1, 'Un solo boleto, dos ganadores') + poster(2, 'Participa, comparte, gana') + poster(3, 'Bases') +
+      '</tr></table>' +
+      '<div style="font-size:12px;color:#a59c8f;text-align:center;padding-top:8px">Manda los posters junto con tu link por WhatsApp, Instagram o Facebook.</div>' +
+      '</td></tr></table></td></tr></table>';
+    const i = html.toLowerCase().lastIndexOf('</body>');
+    return i === -1 ? html + bloque : html.slice(0, i) + bloque + html.slice(i);
+  } catch (err) {
+    try { registrarLog_('WEB', 'ERROR_BLOQUE_COMPARTIR', String(err)); } catch (e2) {}
+    return html;
+  }
+}
