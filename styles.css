@@ -212,3 +212,12 @@ input.err{border-color:#d46a5c}
     box-shadow:0 10px 30px rgba(0,0,0,.6);transform:translateY(140%);transition:transform .4s var(--ease)}
   .float-cta.show{transform:none}
 }
+
+/* boleto apartado */
+.folio-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(5,4,3,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;transition:opacity .4s var(--ease)}
+.folio-overlay.show{opacity:1}
+.folio-card{max-width:420px;width:100%;text-align:center;padding:36px 28px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(180deg,#1a1510,#0f0c09);box-shadow:0 40px 80px rgba(0,0,0,.7)}
+.tk-big{position:relative;margin:10px auto 22px;padding:20px 10px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,rgba(210,164,92,.14),rgba(210,164,92,.03))}
+.tk-big small{display:block;font-size:11px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
+.tk-big b{display:block;font-size:56px;font-weight:400;letter-spacing:.1em;color:var(--gold-hi);font-variant-numeric:tabular-nums}
+.folio-card .btn{margin-top:18px}

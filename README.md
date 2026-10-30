@@ -1,31 +1,18 @@
 # Gran Rifa Or Barak 2026 — sitio web
 
-Sitio estático (GitHub Pages) + backend en Google Apps Script + pagos con Stripe Checkout.
-
-```
-index.html     Página principal (hero, contador, cómo funciona, compra, vendedores, bases, FAQ)
-gracias.html   Confirmación de pago con los números de boleto
-config.js      ← ÚNICO archivo a editar en el sitio (URL del backend, precios, contacto, permiso SEGOB)
-app.js / styles.css / assets/
-backend/Code.gs  Backend para Apps Script
-```
+Sitio estático conectado al sistema existente de la rifa (Google Sheets + Apps Script + Worker de Cloudflare + Stripe).
 
 ## Cómo funciona
-- **Sin backend (hoy):** el botón de pago abre el Payment Link de Stripe existente, con el correo y el código de vendedor (`client_reference_id`) prellenados.
-- **Con backend:** el sitio crea una sesión de Stripe Checkout con la cantidad exacta, aparta los boletos 30 min, valida el código de vendedor y el límite de 50, asigna números aleatorios al pagar, los muestra en `gracias.html`, manda correo al comprador y a los admins, y alimenta el contador en vivo.
-- **Link de vendedor:** `https://bx44.github.io/rifa-or-barak/?v=CODIGO`. El código se recuerda en el navegador del comprador.
+1. El comprador llena nombre, correo, celular y (opcional) código de vendedor.
+2. La página llama a la implementación pública del script "Rifa" (`?accion=web` / `web_comprar`), que registra la venta igual que el Form "Vender boleto": alta en COMPRADORES, folio en BOLETOS, Cobranza y correos al comprador y al vendedor.
+3. Se muestra el folio y se manda al Worker `muddy-meadow-b7aa/pagar`, que cobra el saldo exacto en Stripe (con meses).
+4. Stripe avisa al Worker → Worker reenvía al script → `doPost` registra el pago en PAGOS (boleto liquidado).
 
-## Activar el backend (una vez)
-1. Abre la hoja de cálculo de la rifa → **Extensiones → Apps Script** → crea un archivo `Web.gs` y pega `backend/Code.gs`.
-2. **Configuración del proyecto → Propiedades del script** → agrega `STRIPE_SECRET_KEY` = tu llave secreta (`sk_live_…` o `sk_test_…` para probar).
-3. Ejecuta la función `instalar` (crea las hojas `Web_Boletos`, `Web_Vendedores`, `Web_Reservas` y el sincronizador cada 5 min). Autoriza permisos.
-4. **Implementar → Nueva implementación → Aplicación web** · Ejecutar como: *Yo* · Acceso: *Cualquier usuario*. Copia la URL `/exec`.
-5. Pega esa URL en `config.js` → `API_URL`.
-6. Da de alta vendedores en `Web_Vendedores` (Código, Nombre, Correo, Teléfono, Activo).
+El contador lee BOLETOS en vivo. Códigos de vendedor = iniciales + últimos 4 dígitos del celular (ej. JBH6174); el vendedor lo obtiene en la sección "Vendedores" con su celular.
 
-> Si tu sistema actual ya guarda folios en otra hoja del mismo archivo, llena `HOJA_EXTERNA` y `COLUMNA_FOLIO_EXTERNA` en `Code.gs` para que esos números no se repitan y cuenten en el contador.
+## Archivos
+- `config.js` — único archivo a editar (URL de la API, contacto, permiso SEGOB).
+- `backend/Web.gs` — copia del archivo agregado al proyecto de Apps Script "Rifa" (más 2 líneas en `doGet`/`doPost` de Código.gs).
 
-No hace falta webhook: el pago se confirma al volver a `gracias.html` y, como respaldo, el sincronizador revisa Stripe cada 5 minutos.
-
-## Migrar después
-Todo es HTML/CSS/JS sin dependencias: se copia tal cual a cualquier hosting (Netlify, Vercel, servidor propio). Solo hay que actualizar `SITIO_URL` en `Code.gs`.
+## Si haces una implementación nueva del script
+Actualiza la implementación existente (Implementar → Administrar → Editar → Nueva versión) para que la URL no cambie; si cambia, actualízala aquí en `config.js` y en la variable `RIFA_GAS_URL` del Worker.

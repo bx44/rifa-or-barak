@@ -14,7 +14,7 @@
   const cleanCode = (s) => (s || '').toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 40);
 
   async function apiGet(action, extra) {
-    const q = new URLSearchParams(Object.assign({ action }, extra || {}));
+    const q = new URLSearchParams(Object.assign({ accion: 'web', op: action }, extra || {}));
     const r = await fetch(C.API_URL + '?' + q.toString());
     return r.json();
   }
@@ -125,26 +125,32 @@
     else { vendHint.textContent = ''; }
   }
 
-  /* ---------- cantidad / total ---------- */
-  let qty = 1;
-  function setQty(n) { qty = Math.max(1, Math.min(C.MAX_POR_COMPRA, n)); $('qVal').textContent = qty; $('totalVal').textContent = money(qty * C.PRECIO); }
-  $('qMinus').onclick = () => setQty(qty - 1);
-  $('qPlus').onclick = () => setQty(qty + 1);
-  setQty(1);
+  const qty = 1;
   if (params.get('cancelado')) { $('formMsg').textContent = 'El pago no se completó. Puedes intentarlo de nuevo.'; }
 
   /* ---------- compra ---------- */
+  function showFolio(r) {
+    const f = String(r.folio).padStart(4, '0');
+    const ov = document.createElement('div');
+    ov.className = 'folio-overlay';
+    ov.innerHTML = '<div class="folio-card"><p class="eyebrow">Boleto apartado</p><div class="tk-big"><small>Tu número</small><b>' + f + '</b></div>' +
+      '<p>' + (r.nombre || '').split(' ')[0] + ', te llevamos al pago seguro…</p>' +
+      '<p class="muted small">También te enviamos tu número y tu liga de pago por correo.</p>' +
+      '<a class="btn" href="' + r.pagoUrl + '">Ir a pagar ahora</a></div>';
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('show'));
+  }
   const form = $('buyForm'), payBtn = $('payBtn'), msg = $('formMsg');
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     msg.textContent = '';
     const data = {
-      action: 'checkout',
+      accion: 'web_comprar',
       nombre: $('fNombre').value.trim(),
       correo: $('fCorreo').value.trim(),
       telefono: $('fTel').value.replace(/[^\d+]/g, ''),
-      cantidad: qty,
-      vendedor: cleanCode(fVend.value)
+      vendedor: cleanCode(fVend.value),
+      web_hp: $('fHp').value
     };
     const bad = [];
     if (data.nombre.length < 3) bad.push('fNombre');
@@ -159,11 +165,12 @@
     try {
       if (HAS_API) {
         const r = await apiPost(data);
-        if (!r.ok) throw new Error(r.error || 'No se pudo iniciar el pago.');
-        location.href = r.url;
+        if (!r.ok) throw new Error(r.error || 'No se pudo registrar tu boleto.');
+        showFolio(r);
+        setTimeout(() => { location.href = r.pagoUrl; }, 2600);
         return;
       }
-      // Respaldo: Payment Link de Stripe (la cantidad se elige dentro de Stripe)
+      // Respaldo sin backend: Payment Link de Stripe
       const u = new URL(C.STRIPE_PAYMENT_LINK);
       u.searchParams.set('prefilled_email', data.correo);
       u.searchParams.set('locale', 'es');
@@ -176,29 +183,34 @@
   });
 
   /* ---------- herramientas de vendedor ---------- */
-  const sCode = $('sCode');
+  const sCel = $('sCel');
   const baseUrl = location.origin + location.pathname.replace(/index\.html$/, '');
   let sTimer;
-  sCode.addEventListener('input', () => { sCode.value = cleanCode(sCode.value); clearTimeout(sTimer); sTimer = setTimeout(renderSellerTools, 450); });
+  sCel.addEventListener('input', () => { clearTimeout(sTimer); sTimer = setTimeout(renderSellerTools, 500); });
   async function renderSellerTools() {
-    const code = cleanCode(sCode.value);
-    $('sellerOut').hidden = !code;
-    if (!code) return;
-    const link = baseUrl + '?v=' + encodeURIComponent(code);
+    const cel = sCel.value.replace(/\D/g, '').slice(-10);
+    $('sellerOut').hidden = true;
+    if (cel.length !== 10 || !HAS_API) return;
+    let r;
+    try { r = await apiGet('micodigo', { cel }); } catch (e) { return; }
+    if (sCel.value.replace(/\D/g, '').slice(-10) !== cel) return;
+    $('sellerOut').hidden = false;
+    if (!r.ok) {
+      $('sName').textContent = 'Ese celular no está registrado como vendedor.';
+      $('sCodeTxt').textContent = ''; $('sProgWrap').hidden = true;
+      document.querySelector('.linkbox').hidden = true; document.querySelector('.seller-out .btn-row').hidden = true;
+      return;
+    }
+    document.querySelector('.linkbox').hidden = false; document.querySelector('.seller-out .btn-row').hidden = false;
+    const link = baseUrl + '?v=' + encodeURIComponent(r.codigo);
+    $('sName').textContent = r.nombre;
+    $('sCodeTxt').textContent = 'Tu código: ' + r.codigo;
     $('sLink').textContent = link;
     $('sWa').href = 'https://wa.me/?text=' + encodeURIComponent(
       'Un solo boleto. Dos ganadores. 🚗🚗\nParticipa en la ' + C.NOMBRE + ': un Mazda 2 para el comprador y otro para quien vende el boleto ganador. Sorteo 10 de diciembre.\n' + link);
-    $('sName').textContent = ''; $('sProgWrap').hidden = true;
-    const r = await lookupSeller(code);
-    if (cleanCode(sCode.value) !== code) return;
-    if (r && r.ok) {
-      $('sName').textContent = r.nombre;
-      $('sProgWrap').hidden = false;
-      $('sBar').style.width = Math.min(100, (r.vendidos / r.max) * 100) + '%';
-      $('sCount').textContent = r.vendidos + ' de ' + r.max + ' boletos vendidos';
-    } else if (r) {
-      $('sName').textContent = 'Este código aún no está registrado.';
-    }
+    $('sProgWrap').hidden = false;
+    $('sBar').style.width = Math.min(100, (r.vendidos / r.max) * 100) + '%';
+    $('sCount').textContent = r.vendidos + ' de ' + r.max + ' boletos vendidos';
   }
   $('sCopy').onclick = async () => {
     const t = $('sLink').textContent;

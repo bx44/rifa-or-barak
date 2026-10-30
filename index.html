@@ -115,9 +115,10 @@
     <div class="buy-intro reveal">
       <p class="eyebrow">Compra en línea</p>
       <h2 class="section-title">Tu boleto,<br><span class="g">en un minuto.</span></h2>
-      <p class="muted">Pago seguro con tarjeta a través de Stripe. Al confirmarse el pago recibes tus números de boleto en pantalla y por correo.</p>
+      <p class="muted">Te registras, se te asigna tu número de boleto y pasas directo al pago seguro con tarjeta (Stripe), con opción a meses. Tu número también te llega por correo.</p>
       <ul class="checks">
-        <li>Boleto liquidado al momento: participa por el Mazda 2.</li>
+        <li>Al pagar, tu boleto queda liquidado y participa por el Mazda 2.</li>
+        <li>¿Quieres más de un boleto? Repite la compra con tus mismos datos.</li>
         <li>Si alguien te recomendó, su código queda registrado: si tu boleto gana, él también.</li>
         <li>¿Prefieres transferencia o efectivo? <a href="#" id="waTransfer" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>.</li>
       </ul>
@@ -138,32 +139,23 @@
           <input id="fTel" name="telefono" type="tel" autocomplete="tel" inputmode="tel" required>
         </div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Boletos</label>
-          <div class="qty">
-            <button type="button" id="qMinus" aria-label="Menos">−</button>
-            <output id="qVal">1</output>
-            <button type="button" id="qPlus" aria-label="Más">+</button>
-          </div>
-        </div>
-        <div class="field">
-          <label for="fVend">Código de vendedor <span class="opt">(opcional)</span></label>
-          <input id="fVend" name="vendedor" autocapitalize="characters" spellcheck="false">
-          <p class="hint" id="vendHint"></p>
-        </div>
+      <div class="field">
+        <label for="fVend">Código de vendedor <span class="opt">(opcional)</span></label>
+        <input id="fVend" name="vendedor" autocapitalize="characters" spellcheck="false" placeholder="Ej. ABC1234">
+        <p class="hint" id="vendHint"></p>
       </div>
+      <input type="text" id="fHp" name="web_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0">
       <label class="consent">
         <input type="checkbox" id="fAcepto" required>
         <span>Acepto las <a href="#bases">bases del sorteo</a> y el aviso de privacidad.</span>
       </label>
       <div class="total">
-        <span>Total</span>
+        <span>1 boleto</span>
         <b id="totalVal">$6,000 MXN</b>
       </div>
       <button class="btn btn-block" id="payBtn" type="submit">
         <svg viewBox="0 0 24 24" class="lock"><use href="#i-lock-s"/></svg>
-        Pagar con Stripe
+        Apartar y pagar
       </button>
       <p class="form-msg" id="formMsg" role="alert"></p>
       <p class="secure">Pagos procesados por Stripe. Or Barak no almacena datos de tu tarjeta.</p>
@@ -192,13 +184,14 @@
 
       <div class="card reveal">
         <h3 class="card-title">Tu link de vendedor</h3>
-        <p class="muted">Escribe tu código y comparte tu link. Quien compre desde ahí queda registrado como venta tuya.</p>
+        <p class="muted">Escribe tu celular de vendedor y obtén tu código y tu link. Quien compre desde ahí queda registrado como venta tuya.</p>
         <div class="field">
-          <label for="sCode">Tu código</label>
-          <input id="sCode" autocapitalize="characters" spellcheck="false" placeholder="Ej. JBH01">
+          <label for="sCel">Tu celular (10 dígitos)</label>
+          <input id="sCel" type="tel" inputmode="numeric" autocomplete="tel" placeholder="55 1234 5678">
         </div>
         <div class="seller-out" id="sellerOut" hidden>
           <p class="seller-name" id="sName"></p>
+          <p class="muted small" id="sCodeTxt"></p>
           <div class="seller-progress" id="sProgWrap" hidden>
             <div class="bar"><div class="bar-fill" id="sBar"></div></div>
             <p class="muted small" id="sCount"></p>
@@ -249,8 +242,8 @@
 <section class="faq" id="faq">
   <div class="wrap narrow">
     <p class="eyebrow center">Preguntas frecuentes</p>
-    <details class="reveal"><summary>¿Cómo recibo mis números de boleto?</summary>
-      <p>Al terminar el pago verás tus números en pantalla y te llegan por correo. Si no los encuentras, <a href="#" class="js-consulta" target="_blank" rel="noopener">consulta tus boletos aquí</a>.</p></details>
+    <details class="reveal"><summary>¿Cómo recibo mi número de boleto?</summary>
+      <p>En cuanto te registras se te asigna tu número, lo ves en pantalla y te llega por correo con tu liga de pago. Al pagar recibes la confirmación. Si no lo encuentras, <a href="#" class="js-consulta" target="_blank" rel="noopener">consulta tus boletos aquí</a>.</p></details>
     <details class="reveal"><summary>¿Qué significa “dos ganadores”?</summary>
       <p>Se sortea un solo boleto. Quien lo compró gana un Mazda 2, y la persona que se lo vendió gana otro Mazda 2.</p></details>
     <details class="reveal"><summary>¿Puedo pagar en efectivo o por transferencia?</summary>
