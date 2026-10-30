@@ -26,8 +26,7 @@
   /* ---------- enlaces de config ---------- */
   const waLink = (text) => 'https://wa.me/' + C.WHATSAPP + (text ? '?text=' + encodeURIComponent(text) : '');
   $('waTransfer').href = waLink('Hola, quiero comprar un boleto de la ' + C.NOMBRE + ' por transferencia.');
-  $('btnRegistro').href = C.FORM_VENDER_URL;
-  $('btnWaVend').href = waLink('Hola, quiero ser vendedor de la ' + C.NOMBRE + '.');
+  $('btnRegistro').href = waLink('Hola, quiero registrarme como vendedor de la ' + C.NOMBRE + '.');
   document.querySelectorAll('.js-wa').forEach((a) => (a.href = waLink('Hola, tengo una pregunta sobre la ' + C.NOMBRE + '.')));
   document.querySelectorAll('.js-consulta').forEach((a) => (a.href = C.FORM_CONSULTA_URL));
   document.querySelectorAll('.js-mail').forEach((s) => (s.textContent = C.CORREO_COMPROBANTES));
@@ -59,6 +58,17 @@
 
   const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12 });
   document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+
+  /* ---------- embudo: visita / empezó a llenar (sin datos personales) ---------- */
+  function evento(e) {
+    if (!HAS_API) return;
+    const k = 'rifa_ev_' + e;
+    try { if (sessionStorage.getItem(k)) return; sessionStorage.setItem(k, '1'); } catch (x) {}
+    const q = new URLSearchParams({ accion: 'web', op: 'evento', e: e, v: cleanCode(params.get('v') || params.get('ref') || store.get('rifa_ref') || '') });
+    fetch(C.API_URL + '?' + q.toString(), { keepalive: true }).catch(() => {});
+  }
+  evento('visita');
+  document.getElementById('buyForm').addEventListener('focusin', () => evento('inicio'), { once: true });
 
   /* ---------- cuenta regresiva ---------- */
   const target = new Date(C.SORTEO_ISO).getTime();

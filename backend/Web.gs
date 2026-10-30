@@ -28,6 +28,7 @@ function webApi_(p) {
     if (p.op === 'stats') return webJson_(webStats_());
     if (p.op === 'vendedor') return webJson_(webVendedorPublico_(p.codigo));
     if (p.op === 'micodigo') return webJson_(webMiCodigo_(p.cel));
+    if (p.op === 'evento') return webJson_(webRegistrarEvento_(p.e, p.v, ''));
     return webJson_({ ok: true, rifa: NOMBRE_RIFA });
   } catch (err) {
     return webJson_({ ok: false, error: String(err && err.message || err) });
@@ -171,6 +172,7 @@ function webComprar_(d) {
       if (!folio) return webJson_({ ok: false, error: 'Ya no hay boletos disponibles.' });
       SpreadsheetApp.flush();
       registrarLog_('WEB', 'VENTA_REGISTRADA', 'Folio ' + folio + ' asignado a comprador ' + cel + ' (' + nombre + ') desde la página web. Vendedor: ' + vendedor.nombre);
+      webRegistrarEvento_('apartado', codigo || webCodigoVendedor_(vendedor.nombre, vendedor.celular), folio);
     } finally {
       lock.releaseLock();
     }
@@ -249,4 +251,84 @@ function webConCompartir_(html, correoVendedor) {
     try { registrarLog_('WEB', 'ERROR_BLOQUE_COMPARTIR', String(err)); } catch (e2) {}
     return html;
   }
+}
+
+/* ---------- EMBUDO DE LA PÁGINA: visitas → empezaron a llenar → apartaron → pagaron ----------
+ * La página manda "visita" (1 por sesión) e "inicio" (cuando empiezan a llenar el formulario,
+ * sin mandar ningún dato personal). "apartado" se registra al asignar folio.
+ * Pestañas: WEB_EVENTOS (bitácora) y WEB_RESUMEN (se recalcula cada hora y con webActualizarResumen).
+ */
+const SH_WEB_EVENTOS = 'WEB_EVENTOS';
+const SH_WEB_RESUMEN = 'WEB_RESUMEN';
+
+function webHoja_(nombre, encabezados) {
+  const ss = ss_();
+  let h = ss.getSheetByName(nombre);
+  if (!h) {
+    h = ss.insertSheet(nombre);
+    if (encabezados) {
+      h.getRange(1, 1, 1, encabezados.length).setValues([encabezados]).setFontWeight('bold');
+      h.setFrozenRows(1);
+    }
+  }
+  return h;
+}
+
+function webRegistrarEvento_(evento, codigo, folio) {
+  evento = String(evento || '').toLowerCase();
+  if (['visita', 'inicio', 'apartado'].indexOf(evento) === -1) return { ok: false };
+  const ahora = new Date();
+  const dia = Utilities.formatDate(ahora, 'America/Mexico_City', 'yyyy-MM-dd');
+  webHoja_(SH_WEB_EVENTOS, ['Fecha', 'Día', 'Evento', 'Código vendedor', 'Folio'])
+    .appendRow([ahora, dia, evento, webLimpiarCodigo_(codigo) || '(directo)', folio || '']);
+  return { ok: true };
+}
+
+function webActualizarResumen() {
+  const ev = webHoja_(SH_WEB_EVENTOS, ['Fecha', 'Día', 'Evento', 'Código vendedor', 'Folio']).getDataRange().getValues();
+  ev.shift();
+  const saldoPorFolio = {};
+  webBoletos_().forEach(function (r) { saldoPorFolio[Number(r[0])] = Number(r[5]); });
+  const nombres = {};
+  webVendedores_().forEach(function (v) { nombres[v.codigo] = v.nombre; });
+
+  const porDia = {}, porVend = {};
+  const vacio = function () { return { visita: 0, inicio: 0, apartado: 0, pagado: 0 }; };
+  ev.forEach(function (r) {
+    const dia = r[1] instanceof Date ? Utilities.formatDate(r[1], 'America/Mexico_City', 'yyyy-MM-dd') : String(r[1]);
+    const e = String(r[2]), c = String(r[3] || '(directo)');
+    porDia[dia] = porDia[dia] || vacio();
+    porVend[c] = porVend[c] || vacio();
+    if (porDia[dia][e] === undefined) return;
+    porDia[dia][e]++; porVend[c][e]++;
+    if (e === 'apartado' && r[4] !== '' && saldoPorFolio[Number(r[4])] === 0) { porDia[dia].pagado++; porVend[c].pagado++; }
+  });
+  const pct = function (a, b) { return b ? Math.round(100 * a / b) + '%' : '—'; };
+  const filas = [['POR DÍA', 'Visitas', 'Empezaron a llenar', 'Apartaron folio', 'Pagaron', '% visita→pago']];
+  Object.keys(porDia).sort().reverse().forEach(function (d) {
+    const x = porDia[d]; filas.push([d, x.visita, x.inicio, x.apartado, x.pagado, pct(x.pagado, x.visita)]);
+  });
+  filas.push(['', '', '', '', '', '']);
+  filas.push(['POR VENDEDOR (link)', 'Visitas', 'Empezaron a llenar', 'Apartaron folio', 'Pagaron', '% visita→pago']);
+  Object.keys(porVend).sort(function (a, b) { return porVend[b].visita - porVend[a].visita; }).forEach(function (c) {
+    const x = porVend[c];
+    filas.push([c === '(directo)' ? 'Sin código (directo)' : c + ' — ' + (nombres[c] || '?'), x.visita, x.inicio, x.apartado, x.pagado, pct(x.pagado, x.visita)]);
+  });
+  const h = webHoja_(SH_WEB_RESUMEN);
+  h.clear();
+  h.getRange(1, 1, filas.length, 6).setValues(filas);
+  h.getRange(1, 1, 1, 6).setFontWeight('bold');
+  const iv = filas.findIndex(function (f) { return f[0] === 'POR VENDEDOR (link)'; });
+  if (iv > 0) h.getRange(iv + 1, 1, 1, 6).setFontWeight('bold');
+  h.getRange(filas.length + 2, 1).setValue('Actualizado: ' + Utilities.formatDate(new Date(), 'America/Mexico_City', 'yyyy-MM-dd HH:mm') + ' (se actualiza cada hora)');
+  h.autoResizeColumns(1, 6);
+}
+
+/** Ejecutar UNA vez: crea las pestañas y el activador que actualiza WEB_RESUMEN cada hora. */
+function webInstalarResumen() {
+  webHoja_(SH_WEB_EVENTOS, ['Fecha', 'Día', 'Evento', 'Código vendedor', 'Folio']);
+  ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'webActualizarResumen'; })
+    .forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('webActualizarResumen').timeBased().everyHours(1).create();
+  webActualizarResumen();
 }
