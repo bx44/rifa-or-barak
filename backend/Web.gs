@@ -1,0 +1,203 @@
+/* ============================================================
+ *  PÁGINA WEB PÚBLICA DE LA RIFA
+ *  La página (GitHub / tu dominio) habla con este script a través de
+ *  la implementación PÚBLICA (la misma que usa el Worker: RIFA_GAS_URL).
+ *
+ *  GET  ?accion=web&op=stats                 -> contador de boletos
+ *  GET  ?accion=web&op=vendedor&codigo=XXX   -> nombre y avance del vendedor
+ *  GET  ?accion=web&op=micodigo&cel=55...    -> el vendedor obtiene su código/link
+ *  POST {accion:'web_comprar', ...}          -> registra la venta (igual que el
+ *        Form "Vender boleto") y devuelve el link de pago del Worker, que
+ *        cobra el saldo exacto en Stripe. El webhook ya existente marca el pago.
+ *
+ *  Código de vendedor = iniciales del nombre + últimos 4 dígitos del celular
+ *  (ej. Jonathan Ben-Hamu, 55 3989 6174 -> JBH6174). No hay que darlo de alta:
+ *  todo vendedor con EsVendedor = SI ya tiene su código.
+ * ============================================================ */
+const WEB_PAGO_URL_BASE = 'https://muddy-meadow-b7aa.jonathan-cf5.workers.dev/pagar';
+const WEB_MAX_POR_VENDEDOR = 50;
+const WEB_MAX_PENDIENTES_POR_CELULAR = 3; // boletos con saldo que alguien puede apartar desde la web
+const WEB_CORREO_VENDEDOR_DIRECTO = 'jonathan@ben-hamu.com'; // a quién se asignan las ventas web sin código
+
+function webJson_(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function webApi_(p) {
+  try {
+    if (p.op === 'stats') return webJson_(webStats_());
+    if (p.op === 'vendedor') return webJson_(webVendedorPublico_(p.codigo));
+    if (p.op === 'micodigo') return webJson_(webMiCodigo_(p.cel));
+    return webJson_({ ok: true, rifa: NOMBRE_RIFA });
+  } catch (err) {
+    return webJson_({ ok: false, error: String(err && err.message || err) });
+  }
+}
+
+function webCodigoVendedor_(nombre, celular) {
+  const sinAcentos = String(nombre || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  const iniciales = sinAcentos.split(/[^A-Z]+/).filter(Boolean).map(function (w) { return w[0]; }).join('').slice(0, 3);
+  return (iniciales || 'V') + normalizarTelefono_(celular).slice(-4);
+}
+
+function webLimpiarCodigo_(s) {
+  return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+}
+
+function webVendedores_() {
+  const data = sh_(SH_COMPRADORES).getDataRange().getValues();
+  const out = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] !== '' && String(data[i][3]).trim() === 'SI') {
+      out.push({ celular: data[i][0], nombre: String(data[i][1]).trim(), correo: String(data[i][2]).trim(),
+        codigo: webCodigoVendedor_(data[i][1], data[i][0]) });
+    }
+  }
+  return out;
+}
+
+function webBoletos_() {
+  const data = sh_(SH_BOLETOS).getDataRange().getValues(); // Folio, Comprador, Vendedor, Precio, Pagado, Saldo, Estado
+  data.shift();
+  return data.filter(function (r) { return r[0] !== ''; });
+}
+
+function webEstaVendido_(r) {
+  const e = String(r[6]).trim();
+  return e !== 'Disponible' && e !== 'Cancelado' && e !== '';
+}
+
+function webVentasDeVendedor_(celular, boletos) {
+  const cel = normalizarTelefono_(celular);
+  return (boletos || webBoletos_()).filter(function (r) {
+    return webEstaVendido_(r) && normalizarTelefono_(r[2]) === cel;
+  }).length;
+}
+
+function webStats_() {
+  const cache = CacheService.getScriptCache();
+  const c = cache.get('web_stats');
+  if (c) return JSON.parse(c);
+  const b = webBoletos_();
+  const vendidos = b.filter(webEstaVendido_);
+  const r = {
+    ok: true,
+    total: b.length,
+    vendidos: vendidos.length,
+    liquidados: vendidos.filter(function (x) { return Number(x[5]) === 0; }).length,
+    restantes: b.length - vendidos.length
+  };
+  cache.put('web_stats', JSON.stringify(r), 30);
+  return r;
+}
+
+function webBuscarVendedorPorCodigo_(codigo) {
+  codigo = webLimpiarCodigo_(codigo);
+  if (!codigo) return null;
+  const vs = webVendedores_();
+  for (let i = 0; i < vs.length; i++) if (vs[i].codigo === codigo) return vs[i];
+  return null;
+}
+
+function webVendedorPublico_(codigo) {
+  const v = webBuscarVendedorPorCodigo_(codigo);
+  if (!v) return { ok: false, error: 'No encontrado' };
+  return { ok: true, codigo: v.codigo, nombre: v.nombre, vendidos: webVentasDeVendedor_(v.celular), max: WEB_MAX_POR_VENDEDOR };
+}
+
+function webMiCodigo_(cel) {
+  const buscado = normalizarTelefono_(cel);
+  if (buscado.length !== 10) return { ok: false, error: 'Celular no válido' };
+  const vs = webVendedores_();
+  for (let i = 0; i < vs.length; i++) {
+    if (normalizarTelefono_(vs[i].celular) === buscado) {
+      return { ok: true, codigo: vs[i].codigo, nombre: vs[i].nombre, vendidos: webVentasDeVendedor_(vs[i].celular), max: WEB_MAX_POR_VENDEDOR };
+    }
+  }
+  return { ok: false, error: 'Ese celular no está registrado como vendedor' };
+}
+
+function webUrlPago_(folio) {
+  return WEB_PAGO_URL_BASE + '?f=' + Number(folio) + '&t=' + firmaPago_(folio);
+}
+
+/* ---------- COMPRA DESDE LA WEB (misma lógica que el Form "Vender boleto") ---------- */
+function webComprar_(d) {
+  try {
+    if (d.web_hp) return webJson_({ ok: false, error: 'Solicitud no válida.' }); // campo trampa anti-bots
+    let nombre = String(d.nombre || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    let correo = String(d.correo || '').trim().toLowerCase().slice(0, 120);
+    const cel = normalizarTelefono_(d.telefono);
+    if (nombre.length < 3) return webJson_({ ok: false, error: 'Escribe tu nombre completo.' });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) return webJson_({ ok: false, error: 'Correo no válido.' });
+    if (cel.length !== 10) return webJson_({ ok: false, error: 'Escribe tu celular a 10 dígitos.' });
+
+    let vendedor;
+    const codigo = webLimpiarCodigo_(d.vendedor);
+    if (codigo) {
+      vendedor = webBuscarVendedorPorCodigo_(codigo);
+      if (!vendedor) return webJson_({ ok: false, error: 'El código de vendedor no existe. Revísalo o déjalo vacío.' });
+    } else {
+      const v = buscarVendedorPorCorreo_(WEB_CORREO_VENDEDOR_DIRECTO);
+      if (!v) return webJson_({ ok: false, error: 'Escribe el código de la persona que te invitó.' });
+      vendedor = { celular: v.celular, nombre: v.nombre, correo: v.correo };
+    }
+
+    const lock = LockService.getScriptLock();
+    lock.waitLock(30000);
+    let folio, reconciliado = false;
+    const nombreTecleado = nombre, correoTecleado = correo;
+    try {
+      const boletos = webBoletos_();
+      if (webVentasDeVendedor_(vendedor.celular, boletos) >= WEB_MAX_POR_VENDEDOR) {
+        return webJson_({ ok: false, error: vendedor.nombre + ' ya vendió el máximo de ' + WEB_MAX_POR_VENDEDOR + ' boletos. Usa otro código o déjalo vacío.' });
+      }
+      const pendientes = boletos.filter(function (r) {
+        return webEstaVendido_(r) && normalizarTelefono_(r[1]) === cel && Number(r[5]) > 0;
+      }).length;
+      if (pendientes >= WEB_MAX_PENDIENTES_POR_CELULAR) {
+        return webJson_({ ok: false, error: 'Ya tienes ' + pendientes + ' boletos pendientes de pago. Liquídalos primero o escríbenos por WhatsApp.' });
+      }
+
+      const existente = identidadPorCelular_(cel);
+      if (existente) {
+        if (existente.nombre.trim().toLowerCase() !== nombre.toLowerCase()) reconciliado = true;
+        nombre = existente.nombre;
+        correo = existente.correo || correo;
+        if ((existente.correo || '').trim().toLowerCase() !== correoTecleado) reconciliado = true;
+      }
+      altaOActualizaComprador_(cel, nombre, correo);
+      folio = asignarSiguienteFolio_(cel, vendedor.celular);
+      if (!folio) return webJson_({ ok: false, error: 'Ya no hay boletos disponibles.' });
+      SpreadsheetApp.flush();
+      registrarLog_('WEB', 'VENTA_REGISTRADA', 'Folio ' + folio + ' asignado a comprador ' + cel + ' (' + nombre + ') desde la página web. Vendedor: ' + vendedor.nombre);
+    } finally {
+      lock.releaseLock();
+    }
+    CacheService.getScriptCache().remove('web_stats');
+
+    try { registrarDonativoPendienteEnCobranza_(cel, nombre, correo, folio, vendedor.nombre); }
+    catch (err) { registrarLog_('SISTEMA', 'ERROR_COBRANZA', 'Web, folio ' + folio + ': ' + err); }
+    try { enviarCorreoConfirmacionComprador_(correo, nombre, folio, vendedor.nombre); }
+    catch (err) { registrarLog_('SISTEMA', 'ERROR_EMAIL', String(err)); }
+    try {
+      if (vendedor.correo) enviarCorreoConfirmacionVendedor_(vendedor.correo, {
+        folio: folio, celComprador: cel, nombreTecleado: nombreTecleado, correoTecleado: correoTecleado,
+        nombreSistema: nombre, correoSistema: correo, reconciliado: reconciliado
+      });
+    } catch (err) { registrarLog_('SISTEMA', 'ERROR_EMAIL', String(err)); }
+
+    return webJson_({ ok: true, folio: folio, nombre: nombre, vendedor: vendedor.nombre, pagoUrl: webUrlPago_(folio) });
+  } catch (err) {
+    try { registrarLog_('WEB', 'ERROR_WEB', String(err)); } catch (e2) {}
+    return webJson_({ ok: false, error: 'No se pudo registrar. Intenta de nuevo o escríbenos por WhatsApp.' });
+  }
+}
+
+/** Prueba desde el editor: muestra el contador y el link de pago de un folio vendido. */
+function webProbar() {
+  Logger.log(JSON.stringify(webStats_()));
+  const b = webBoletos_().filter(function (r) { return webEstaVendido_(r) && Number(r[5]) > 0; })[0];
+  if (b) Logger.log('Link de pago folio ' + b[0] + ': ' + webUrlPago_(b[0]));
+  Logger.log('Vendedores: ' + webVendedores_().map(function (v) { return v.codigo + ' ' + v.nombre; }).join(' | '));
+}
