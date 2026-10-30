@@ -29,6 +29,7 @@ function webApi_(p) {
     if (p.op === 'vendedor') return webJson_(webVendedorPublico_(p.codigo));
     if (p.op === 'micodigo') return webJson_(webMiCodigo_(p.cel));
     if (p.op === 'evento') return webJson_(webRegistrarEvento_(p.e, p.v, ''));
+    if (p.op === 'muro') return webJson_(webMuro_());
     return webJson_({ ok: true, rifa: NOMBRE_RIFA });
   } catch (err) {
     return webJson_({ ok: false, error: String(err && err.message || err) });
@@ -173,6 +174,7 @@ function webComprar_(d) {
       SpreadsheetApp.flush();
       registrarLog_('WEB', 'VENTA_REGISTRADA', 'Folio ' + folio + ' asignado a comprador ' + cel + ' (' + nombre + ') desde la página web. Vendedor: ' + vendedor.nombre);
       webRegistrarEvento_('apartado', codigo || webCodigoVendedor_(vendedor.nombre, vendedor.celular), folio);
+      webGuardarMuro_(d, folio, nombre, cel);
     } finally {
       lock.releaseLock();
     }
@@ -337,4 +339,56 @@ function webInstalarResumen() {
 /** Prueba: manda SOLO a jonathan@ben-hamu.com el correo de bienvenida de vendedor con el bloque para compartir. */
 function webPruebaCorreoVendedor() {
   enviarCorreoBienvenidaVendedor_('Jonathan Ben-Hamu', 'jonathan@ben-hamu.com');
+}
+
+/* ---------- MURO DE PARTICIPANTES (como en las páginas de donativos) ----------
+ * Cada compra web guarda cómo quiere aparecer la persona y su dedicatoria en la pestaña WEB_MURO.
+ * En la página solo aparecen los boletos YA PAGADOS (saldo 0) y con Visible = SI.
+ * Para ocultar a alguien, cambia su "Visible" a NO.
+ */
+const SH_WEB_MURO = 'WEB_MURO';
+const WEB_DEDICATORIAS = ['Leilui Nishmat', 'Refuá Shelemá', 'Hatzlajá', 'Zivug Hagún', 'En honor de', 'Otra'];
+
+function webHojaMuro_() {
+  return webHoja_(SH_WEB_MURO, ['Fecha', 'Folio', 'Cómo aparece', 'Nombre que se muestra', 'Dedicatoria', 'Texto de la dedicatoria', 'Comprador', 'Celular', 'Visible (SI/NO)']);
+}
+
+function webLimpiarTexto_(s, max) {
+  return String(s || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function webGuardarMuro_(d, folio, nombreComprador, cel) {
+  try {
+    let modo = String(d.modo || 'nombre');
+    if (['nombre', 'anonimo', 'otro'].indexOf(modo) === -1) modo = 'nombre';
+    let mostrado = nombreComprador;
+    if (modo === 'anonimo') mostrado = 'Anónimo';
+    if (modo === 'otro') mostrado = webLimpiarTexto_(d.aNombre, 60) || nombreComprador;
+    let tipo = String(d.dedTipo || '');
+    if (WEB_DEDICATORIAS.indexOf(tipo) === -1) tipo = '';
+    const texto = tipo ? webLimpiarTexto_(d.dedTexto, 90) : '';
+    const etiqueta = { nombre: 'Con su nombre', anonimo: 'Anónimo', otro: 'A nombre de otra persona' }[modo];
+    webHojaMuro_().appendRow([new Date(), folio, etiqueta, mostrado, tipo, texto, nombreComprador, cel, 'SI']);
+  } catch (err) {
+    registrarLog_('WEB', 'ERROR_MURO', String(err));
+  }
+}
+
+function webMuro_() {
+  const cache = CacheService.getScriptCache();
+  const c = cache.get('web_muro');
+  if (c) return JSON.parse(c);
+  const saldo = {};
+  webBoletos_().forEach(function (r) { saldo[Number(r[0])] = Number(r[5]); });
+  const data = webHojaMuro_().getDataRange().getValues();
+  data.shift();
+  const items = data
+    .filter(function (r) { return r[1] !== '' && String(r[8]).toUpperCase() !== 'NO' && saldo[Number(r[1])] === 0; })
+    .map(function (r) {
+      return { t: r[0] instanceof Date ? r[0].getTime() : new Date(r[0]).getTime(), nombre: String(r[3]), dedTipo: String(r[4] || ''), dedTexto: String(r[5] || ''), anon: String(r[2]) === 'Anónimo' };
+    })
+    .sort(function (a, b) { return b.t - a.t; });
+  const out = { ok: true, total: items.length, items: items.slice(0, 60) };
+  cache.put('web_muro', JSON.stringify(out), 60);
+  return out;
 }

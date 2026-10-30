@@ -154,6 +154,28 @@
         <input id="fVend" name="vendedor" autocapitalize="characters" spellcheck="false" placeholder="Ej. ABC1234">
         <p class="hint" id="vendHint"></p>
       </div>
+      <div class="field">
+        <label>¿Cómo quieres aparecer en el muro?</label>
+        <div class="seg" id="modoSeg" role="radiogroup">
+          <label><input type="radio" name="modo" value="nombre" checked><span>Con mi nombre</span></label>
+          <label><input type="radio" name="modo" value="anonimo"><span>Anónimo</span></label>
+          <label><input type="radio" name="modo" value="otro"><span>A nombre de…</span></label>
+        </div>
+        <input id="fANombre" name="aNombre" maxlength="60" placeholder="Nombre de la persona o familia" hidden>
+      </div>
+      <div class="field">
+        <label for="fDedTipo">Dedicatoria <span class="opt">(opcional)</span></label>
+        <select id="fDedTipo" name="dedTipo">
+          <option value="">Sin dedicatoria</option>
+          <option>Leilui Nishmat</option>
+          <option>Refuá Shelemá</option>
+          <option>Hatzlajá</option>
+          <option>Zivug Hagún</option>
+          <option>En honor de</option>
+          <option value="Otra">Otra…</option>
+        </select>
+        <input id="fDedTexto" name="dedTexto" maxlength="90" placeholder="Ej. Moshe ben Sara" hidden>
+      </div>
       <input type="text" id="fHp" name="web_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0">
       <label class="consent">
         <input type="checkbox" id="fAcepto" required>
@@ -170,6 +192,19 @@
       <p class="form-msg" id="formMsg" role="alert"></p>
       <p class="secure">Pagos procesados por Stripe. Or Barak no almacena datos de tu tarjeta.</p>
     </form>
+  </div>
+</section>
+
+<!-- ================= MURO ================= -->
+<section class="wall" id="muro" hidden>
+  <div class="wrap">
+    <div class="wall-head reveal in">
+      <p class="eyebrow center">Muro de participantes</p>
+      <h2 class="section-title center">Gracias a quienes <span class="g">ya participan</span></h2>
+      <p class="muted center" id="wallCount"></p>
+    </div>
+    <div class="wall-grid" id="wallGrid"></div>
+    <div class="center"><button class="btn btn-ghost btn-sm" id="wallMore" type="button" hidden>Ver más</button></div>
   </div>
 </section>
 

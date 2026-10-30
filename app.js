@@ -172,6 +172,10 @@
       correo: $('fCorreo').value.trim(),
       telefono: $('fTel').value.replace(/[^\d+]/g, ''),
       vendedor: cleanCode(fVend.value),
+      modo: (document.querySelector('input[name=modo]:checked') || {}).value || 'nombre',
+      aNombre: $('fANombre').value.trim(),
+      dedTipo: $('fDedTipo').value,
+      dedTexto: $('fDedTexto').value.trim(),
       web_hp: $('fHp').value
     };
     const bad = [];
@@ -180,6 +184,9 @@
     if (data.telefono.replace(/\D/g, '').length < 10) bad.push('fTel');
     ['fNombre', 'fCorreo', 'fTel'].forEach((id) => $(id).classList.toggle('err', bad.includes(id)));
     if (bad.length) { msg.textContent = 'Revisa los campos marcados.'; return; }
+    const modoSel = (document.querySelector('input[name=modo]:checked') || {}).value;
+    if (modoSel === 'otro' && data.aNombre.length < 2) { $('fANombre').classList.add('err'); msg.textContent = 'Escribe a nombre de quién quieres el boleto.'; return; }
+    if (data.dedTipo && data.dedTexto.length < 2) { $('fDedTexto').classList.add('err'); msg.textContent = 'Completa la dedicatoria (por ejemplo, el nombre).'; return; }
     if (!vendValid) { msg.textContent = 'El código de vendedor no es válido. Corrígelo o déjalo vacío.'; return; }
     if (!$('fAcepto').checked) { msg.textContent = 'Debes aceptar las bases del sorteo.'; return; }
 
@@ -203,6 +210,61 @@
       payBtn.disabled = false; payBtn.innerHTML = label;
     }
   });
+
+  /* ---------- opciones de muro / dedicatoria ---------- */
+  document.querySelectorAll('input[name=modo]').forEach((r) => r.addEventListener('change', () => {
+    const otro = document.querySelector('input[name=modo]:checked').value === 'otro';
+    $('fANombre').hidden = !otro; if (otro) $('fANombre').focus();
+  }));
+  $('fDedTipo').addEventListener('change', () => {
+    const t = $('fDedTipo').value;
+    $('fDedTexto').hidden = !t;
+    $('fDedTexto').placeholder = t === 'Otra' ? 'Escribe tu dedicatoria' : (t === 'En honor de' || t === 'Hatzlajá' || t === 'Zivug Hagún' ? 'Ej. Familia Cohen' : 'Ej. Moshe ben Sara');
+    if (t) $('fDedTexto').focus();
+  });
+
+  /* ---------- muro de participantes ---------- */
+  function haceCuanto(t) {
+    const m = Math.max(1, Math.round((Date.now() - t) / 60000));
+    if (m < 60) return 'hace ' + m + ' min';
+    const h = Math.round(m / 60); if (h < 24) return 'hace ' + h + (h === 1 ? ' hora' : ' horas');
+    const d = Math.round(h / 24); return 'hace ' + d + (d === 1 ? ' día' : ' días');
+  }
+  function iniciales(n) { return n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase(); }
+  let muroItems = [], muroShown = 0;
+  function pintarMuro(n) {
+    const grid = $('wallGrid');
+    muroItems.slice(muroShown, muroShown + n).forEach((it, i) => {
+      const card = document.createElement('div'); card.className = 'wall-card'; card.style.animationDelay = (i * 0.04) + 's';
+      const av = document.createElement('div'); av.className = 'wall-av' + (it.anon ? ' anon' : '');
+      av.textContent = it.anon ? '✦' : iniciales(it.nombre);
+      const body = document.createElement('div');
+      const nm = document.createElement('p'); nm.className = 'wall-name'; nm.textContent = it.nombre; body.appendChild(nm);
+      if (it.dedTipo && it.dedTexto) {
+        const dd = document.createElement('p'); dd.className = 'wall-ded';
+        if (it.dedTipo === 'Otra') { dd.textContent = it.dedTexto; }
+        else { const b = document.createElement('b'); b.textContent = it.dedTipo + ' '; dd.appendChild(b); dd.appendChild(document.createTextNode(it.dedTexto)); }
+        body.appendChild(dd);
+      }
+      const tm = document.createElement('p'); tm.className = 'wall-time'; tm.textContent = haceCuanto(it.t); body.appendChild(tm);
+      card.appendChild(av); card.appendChild(body); grid.appendChild(card);
+    });
+    muroShown = Math.min(muroItems.length, muroShown + n);
+    $('wallMore').hidden = muroShown >= muroItems.length;
+  }
+  $('wallMore').onclick = () => pintarMuro(12);
+  async function cargarMuro() {
+    if (!HAS_API) return;
+    try {
+      const r = await apiGet('muro');
+      if (!r.ok || !r.items.length) return;
+      muroItems = r.items;
+      $('muro').hidden = false;
+      $('wallCount').textContent = r.total === 1 ? '1 persona ya tiene su boleto.' : r.total + ' personas ya tienen su boleto.';
+      pintarMuro(window.innerWidth < 700 ? 6 : 12);
+    } catch (e) {}
+  }
+  cargarMuro();
 
   /* ---------- herramientas de vendedor ---------- */
   const sCel = $('sCel');
