@@ -392,3 +392,53 @@ function webMuro_() {
   cache.put('web_muro', JSON.stringify(out), 60);
   return out;
 }
+
+/* ---------- MURO también para ventas por el Form "Vender boleto" ---------- */
+// Lo llama ventaDesdeFormulario_ (Código.gs) justo después de asignar el folio.
+function webGuardarMuroDesdeForm_(nv, folio, nombreComprador, celComprador) {
+  const a = respuestaFormulario_(nv, 'aparecer en el muro');
+  const modo = /an[oó]nimo/i.test(a) ? 'anonimo' : (/otra persona/i.test(a) ? 'otro' : 'nombre');
+  let tipo = respuestaFormulario_(nv, 'tipo de dedicatoria');
+  if (/^sin dedicatoria$/i.test(tipo)) tipo = '';
+  webGuardarMuro_({
+    modo: modo,
+    aNombre: respuestaFormulario_(nv, 'nombre para el muro'),
+    dedTipo: tipo,
+    dedTexto: respuestaFormulario_(nv, 'texto de la dedicatoria')
+  }, folio, nombreComprador, normalizarTelefono_(celComprador));
+}
+
+/** Ejecutar UNA vez: agrega al Form "Vender boleto" las preguntas del muro y la dedicatoria. */
+function webAgregarPreguntasMuroAlForm() {
+  let form = null;
+  ss_().getSheets().forEach(function (sh) {
+    if (form) return;
+    const u = sh.getFormUrl();
+    if (!u) return;
+    try {
+      const f = FormApp.openByUrl(u);
+      if (f.getItems().some(function (it) { return /celular del comprador/i.test(it.getTitle()); })) form = f;
+    } catch (err) {}
+  });
+  if (!form) throw new Error('No encontré el Form "Vender boleto" ligado a esta hoja.');
+  if (form.getItems().some(function (it) { return /aparecer en el muro/i.test(it.getTitle()); })) {
+    Logger.log('Las preguntas ya existían en: ' + form.getTitle());
+    return;
+  }
+  form.addMultipleChoiceItem()
+    .setTitle('¿Cómo quiere aparecer el comprador en el muro de la página?')
+    .setHelpText('El muro de participantes de la página muestra a quienes ya pagaron su boleto.')
+    .setChoiceValues(['Con su nombre', 'Anónimo', 'A nombre de otra persona'])
+    .setRequired(true);
+  form.addTextItem()
+    .setTitle('Nombre para el muro (solo si es a nombre de otra persona)')
+    .setRequired(false);
+  form.addListItem()
+    .setTitle('Tipo de dedicatoria (opcional)')
+    .setChoiceValues(['Sin dedicatoria'].concat(WEB_DEDICATORIAS))
+    .setRequired(false);
+  form.addTextItem()
+    .setTitle('Texto de la dedicatoria (ej. Moshe ben Sara)')
+    .setRequired(false);
+  Logger.log('Listo: preguntas agregadas a "' + form.getTitle() + '"');
+}
