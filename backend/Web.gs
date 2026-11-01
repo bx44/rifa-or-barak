@@ -207,7 +207,7 @@ function webProbar() {
 }
 
 /* ---------- MATERIAL PARA COMPARTIR en los correos al vendedor ---------- */
-const WEB_SITIO_URL = 'https://bx44.github.io/rifa-or-barak/';
+const WEB_SITIO_URL = 'https://rifa.orbarakmx.com/';
 
 function webLinkVendedor_(codigo) {
   return WEB_SITIO_URL + '?v=' + encodeURIComponent(codigo);
