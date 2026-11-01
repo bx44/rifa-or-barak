@@ -412,6 +412,7 @@ function webGuardarMuroDesdeForm_(nv, folio, nombreComprador, celComprador) {
 const WEB_FORM_VENDER_ID = '1ZSDR8nPzsJqtI7WkqEsFvIiqdlgENacxWdGEHh-Egcc'; // Form "Venta Boleto Rifa 2026"
 
 function webAgregarPreguntasMuroAlForm() {
+  ScriptApp.requireScopes(ScriptApp.AuthMode.FULL, ['https://www.googleapis.com/auth/forms']);
   let form = null;
   try { form = FormApp.openById(WEB_FORM_VENDER_ID); } catch (err) { Logger.log('openById: ' + err); }
   ss_().getSheets().forEach(function (sh) {
