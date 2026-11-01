@@ -571,6 +571,7 @@ function webCorreoInvitacionMuro_(nombre, folios) {
     '<p style="font-size:15px;line-height:1.55;color:#cfc7ba">En la página de la rifa tenemos un <b style="color:#f2d6a0">muro de participantes</b>. ' +
     '¿Cómo quieres aparecer? Puedes salir con tu nombre, como <b style="color:#f2d6a0">anónimo</b> o <b style="color:#f2d6a0">a nombre de alguien más</b>, ' +
     'y agregar una <b style="color:#f2d6a0">dedicatoria</b> (Leilui Nishmat, Refuá Shelemá, Hatzlajá…).</p>' +
+    '<p style="font-size:15px;line-height:1.55;color:#cfc7ba">Ver quiénes ya participan motiva a otros a sumarse: <b style="color:#f2d6a0">tu nombre en el muro ayuda a que más personas se unan a la rifa</b> y apoyen a los jóvenes de Or Barak.</p>' +
     '<div style="margin:24px 0">' + botones + '</div>' +
     '<p style="font-size:13px;color:#a59c8f;line-height:1.5">Solo toma un minuto. Si no eliges, no apareces en el muro. Tu boleto aparece una vez que esté liquidado.</p>' +
     '</div></div>';
