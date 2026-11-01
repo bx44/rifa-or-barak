@@ -409,8 +409,11 @@ function webGuardarMuroDesdeForm_(nv, folio, nombreComprador, celComprador) {
 }
 
 /** Ejecutar UNA vez: agrega al Form "Vender boleto" las preguntas del muro y la dedicatoria. */
+const WEB_FORM_VENDER_ID = '1ZSDR8nPzsJqtI7WkqEsFvIiqdlgENacxWdGEHh-Egcc'; // Form "Venta Boleto Rifa 2026"
+
 function webAgregarPreguntasMuroAlForm() {
   let form = null;
+  try { form = FormApp.openById(WEB_FORM_VENDER_ID); } catch (err) { Logger.log('openById: ' + err); }
   ss_().getSheets().forEach(function (sh) {
     if (form) return;
     const u = sh.getFormUrl();
