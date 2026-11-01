@@ -459,3 +459,49 @@ function webQuitarPreguntasRepetidas() {
   });
   Logger.log('Preguntas repetidas quitadas: ' + quitadas);
 }
+
+/* ---------- BLOQUE PARA COMPRADORES (correos de boleto, pago, consulta y recordatorio) ----------
+ * Si el comprador también es vendedor, recibe su bloque de vendedor con su link personal.
+ * Si no, recibe: compartir la rifa, ver el muro, y cómo obtener su link si es (o quiere ser) vendedor.
+ */
+function webConCompartirComprador_(html, correoComprador) {
+  try {
+    const correo = String(correoComprador || '').trim().toLowerCase();
+    if (correo && buscarVendedorPorCorreo_(correo)) return webConCompartir_(html, correo);
+    const textoWa = 'Un solo boleto. Dos ganadores. 🚗🚗\n' +
+      'Ya tengo mi boleto de la ' + NOMBRE_RIFA + ': un Mazda 2 para el comprador y otro para quien vende el boleto ganador. ' +
+      'Sorteo 10 de diciembre.\n' + WEB_SITIO_URL;
+    const wa = 'https://wa.me/?text=' + encodeURIComponent(textoWa);
+    const waVendedor = 'https://wa.me/' + WHATSAPP_ADMIN + '?text=' + encodeURIComponent('Hola, quiero registrarme como vendedor de la ' + NOMBRE_RIFA + '.');
+    const btn = function (href, texto, solido) {
+      return '<a href="' + href + '" style="display:inline-block;margin:6px 4px;' +
+        (solido ? 'background:#c4914a;color:#1a1209;' : 'background:transparent;color:#f2d6a0;border:1px solid #8a6a3a;') +
+        'text-decoration:none;padding:12px 20px;border-radius:30px;letter-spacing:1px;font-size:12px;font-weight:bold">' + texto + '</a>';
+    };
+    const bloque =
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0 0"><tr><td align="center">' +
+      '<table role="presentation" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#0f0c09;border:1px solid #5a4526;border-radius:14px;font-family:Helvetica,Arial,sans-serif;color:#ece6dc">' +
+      '<tr><td style="padding:26px 22px;text-align:center">' +
+      '<div style="font-size:12px;letter-spacing:4px;color:#d2a45c">GRAN RIFA OR BARAK 2026</div>' +
+      '<div style="font-size:20px;margin:12px 0 6px;color:#ffffff">Un solo boleto. <span style="color:#d2a45c">Dos ganadores.</span></div>' +
+      '<div style="font-size:14px;color:#a59c8f;margin-bottom:14px">Comparte la rifa con tu familia y amigos, y mira quiénes ya participan.</div>' +
+      btn(wa, 'COMPARTIR POR WHATSAPP', true) + btn(WEB_SITIO_URL + '#muro', 'VER EL MURO', false) +
+      '<div style="height:1px;background:#3a2e1e;margin:22px 0"></div>' +
+      '<div style="font-size:15px;color:#ffffff;margin-bottom:6px">¿Eres vendedor?</div>' +
+      '<div style="font-size:13px;color:#a59c8f;line-height:1.5;margin-bottom:10px">Obtén tu link personal: entra a la página, ve a la sección <b style="color:#f2d6a0">Vendedores</b> y escribe tu celular. ' +
+      'Quien compre desde tu link queda registrado como venta tuya, y si ese boleto gana, <b style="color:#f2d6a0">el segundo Mazda 2 es tuyo</b>.</div>' +
+      btn(WEB_SITIO_URL + '#vendedores', 'OBTENER MI LINK', false) + btn(waVendedor, 'QUIERO SER VENDEDOR', false) +
+      '</td></tr></table></td></tr></table>';
+    const i = html.toLowerCase().lastIndexOf('</body>');
+    return i === -1 ? html + bloque : html.slice(0, i) + bloque + html.slice(i);
+  } catch (err) {
+    try { registrarLog_('WEB', 'ERROR_BLOQUE_COMPRADOR', String(err)); } catch (e2) {}
+    return html;
+  }
+}
+
+/** Prueba: manda SOLO a jonathan@ben-hamu.com cómo se ve el bloque de comprador (sin ser vendedor). */
+function webPruebaCorreoComprador() {
+  const html = '<div style="font-family:Arial;padding:20px;text-align:center"><h2>Vista previa</h2><p>(aquí va el contenido normal del correo al comprador)</p></div>';
+  enviarCorreo_('jonathan@ben-hamu.com', NOMBRE_RIFA + ' — prueba bloque comprador', 'Prueba', webConCompartirComprador_(html, 'prueba-no-vendedor@example.com'));
+}
