@@ -446,3 +446,16 @@ function webAgregarPreguntasMuroAlForm() {
     .setRequired(false);
   Logger.log('Listo: preguntas agregadas a "' + form.getTitle() + '"');
 }
+
+/** Quita preguntas repetidas del Form de venta (deja la primera de cada título). */
+function webQuitarPreguntasRepetidas() {
+  ScriptApp.requireScopes(ScriptApp.AuthMode.FULL, ['https://www.googleapis.com/auth/forms']);
+  const form = FormApp.openById(WEB_FORM_VENDER_ID);
+  const vistos = {};
+  let quitadas = 0;
+  form.getItems().forEach(function (it) {
+    const t = it.getTitle();
+    if (vistos[t]) { form.deleteItem(it); quitadas++; } else { vistos[t] = true; }
+  });
+  Logger.log('Preguntas repetidas quitadas: ' + quitadas);
+}
