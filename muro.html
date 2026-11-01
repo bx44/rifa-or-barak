@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Cómo quieres aparecer? · Gran Rifa Or Barak 2026</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a0908">
+<link rel="icon" href="assets/escudo-sm.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .mw{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:50px 18px}
+  .mw-in{max-width:520px;width:100%}
+  .mw .shield{max-width:120px;margin:0 auto 18px}
+  .mw h1{font-weight:400;font-size:clamp(26px,6vw,36px);letter-spacing:.04em;margin:0 0 8px;text-align:center}
+  .mw .lead{text-align:center;color:var(--muted);margin:0 0 26px}
+  .mw .card{padding:26px 22px}
+  .preview{margin:6px 0 20px;padding:16px;border:1px dashed var(--line);border-radius:12px;display:flex;gap:14px;align-items:center}
+  .ok-box{text-align:center}
+  .ok-box .big-check{font-size:46px;color:var(--gold);margin-bottom:6px}
+</style>
+</head>
+<body>
+<section class="mw hero">
+  <div class="beam" aria-hidden="true"></div>
+  <div class="mw-in">
+    <img class="shield" src="assets/escudo.jpg" alt="Escudo de Or Barak">
+    <p class="eyebrow center">Muro de participantes</p>
+    <h1>¿Cómo quieres aparecer?</h1>
+    <p class="lead" id="lead">Cargando…</p>
+
+    <form class="card" id="f" hidden novalidate>
+      <div class="field">
+        <label>Aparecer en el muro</label>
+        <div class="seg" role="radiogroup">
+          <label><input type="radio" name="modo" value="nombre" checked><span>Con mi nombre</span></label>
+          <label><input type="radio" name="modo" value="anonimo"><span>Anónimo</span></label>
+          <label><input type="radio" name="modo" value="otro"><span>A nombre de…</span></label>
+        </div>
+        <input id="aNombre" maxlength="60" placeholder="Nombre de la persona o familia" hidden>
+      </div>
+      <div class="field">
+        <label for="dedTipo">Dedicatoria <span class="opt">(opcional)</span></label>
+        <select id="dedTipo">
+          <option value="">Sin dedicatoria</option>
+          <option>Leilui Nishmat</option>
+          <option>Refuá Shelemá</option>
+          <option>Hatzlajá</option>
+          <option>Zivug Hagún</option>
+          <option>En honor de</option>
+          <option value="Otra">Otra…</option>
+        </select>
+        <input id="dedTexto" maxlength="90" placeholder="Ej. Moshe ben Sara" hidden>
+      </div>
+      <p class="label" style="margin-top:6px">Así se verá</p>
+      <div class="preview wall-card" id="prev"></div>
+      <button class="btn btn-block" id="save" type="submit">Guardar</button>
+      <p class="form-msg" id="msg"></p>
+    </form>
+
+    <div class="card ok-box" id="ok" hidden>
+      <div class="big-check">✓</div>
+      <h2 class="card-title">¡Listo, gracias!</h2>
+      <p class="muted" id="okTxt"></p>
+      <a class="btn" href="./#muro" style="margin-top:12px">Ver el muro</a>
+    </div>
+  </div>
+</section>
+<script src="config.js"></script>
+<script>
+(function () {
+  const C = window.RIFA, $ = (id) => document.getElementById(id);
+  const q = new URLSearchParams(location.search);
+  const f = q.get('f'), t = q.get('t');
+  let nombre = '', pagado = false;
+  const api = (op, extra) => fetch(C.API_URL + '?' + new URLSearchParams(Object.assign({ accion: 'web', op: op, f: f, t: t }, extra || {}))).then((r) => r.json());
+  const modo = () => (document.querySelector('input[name=modo]:checked') || {}).value || 'nombre';
+
+  function preview() {
+    const m = modo();
+    const shown = m === 'anonimo' ? 'Anónimo' : (m === 'otro' ? ($('aNombre').value.trim() || 'Nombre de la persona') : nombre);
+    const prev = $('prev'); prev.innerHTML = '';
+    const av = document.createElement('div'); av.className = 'wall-av' + (m === 'anonimo' ? ' anon' : '');
+    av.textContent = m === 'anonimo' ? '✦' : shown.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+    const body = document.createElement('div');
+    const nm = document.createElement('p'); nm.className = 'wall-name'; nm.textContent = shown; body.appendChild(nm);
+    const tipo = $('dedTipo').value, txt = $('dedTexto').value.trim();
+    if (tipo) {
+      const dd = document.createElement('p'); dd.className = 'wall-ded';
+      if (tipo === 'Otra') dd.textContent = txt || 'Tu dedicatoria';
+      else { const b = document.createElement('b'); b.textContent = tipo + ' '; dd.appendChild(b); dd.appendChild(document.createTextNode(txt || '…')); }
+      body.appendChild(dd);
+    }
+    prev.appendChild(av); prev.appendChild(body);
+  }
+
+  document.querySelectorAll('input[name=modo]').forEach((r) => r.addEventListener('change', () => { $('aNombre').hidden = modo() !== 'otro'; preview(); }));
+  $('dedTipo').addEventListener('change', () => { $('dedTexto').hidden = !$('dedTipo').value; preview(); });
+  $('aNombre').addEventListener('input', preview);
+  $('dedTexto').addEventListener('input', preview);
+
+  if (!f || !t) { $('lead').textContent = 'Este link no es válido. Revisa el correo que te enviamos.'; return; }
+  api('muroinfo').then((r) => {
+    if (!r.ok) { $('lead').textContent = r.error || 'Este link no es válido.'; return; }
+    nombre = r.nombre || ''; pagado = r.pagado;
+    $('lead').textContent = 'Boleto ' + String(r.folio).padStart(4, '0') + (nombre ? ' · ' + nombre : '');
+    if (r.actual) {
+      const rb = document.querySelector('input[name=modo][value="' + r.actual.modo + '"]'); if (rb) rb.checked = true;
+      $('aNombre').value = r.actual.aNombre || ''; $('aNombre').hidden = r.actual.modo !== 'otro';
+      $('dedTipo').value = r.actual.dedTipo || ''; $('dedTexto').value = r.actual.dedTexto || ''; $('dedTexto').hidden = !r.actual.dedTipo;
+    }
+    $('f').hidden = false; preview();
+  }).catch(() => { $('lead').textContent = 'No pudimos cargar tu boleto. Intenta de nuevo en un momento.'; });
+
+  $('f').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const m = modo(), aN = $('aNombre').value.trim(), tipo = $('dedTipo').value, txt = $('dedTexto').value.trim();
+    if (m === 'otro' && aN.length < 2) { $('msg').textContent = 'Escribe a nombre de quién quieres aparecer.'; return; }
+    if (tipo && txt.length < 2) { $('msg').textContent = 'Completa la dedicatoria (por ejemplo, el nombre).'; return; }
+    $('save').disabled = true; $('save').textContent = 'Guardando…'; $('msg').textContent = '';
+    api('muroguardar', { modo: m, aNombre: aN, dedTipo: tipo, dedTexto: txt }).then((r) => {
+      if (!r.ok) throw new Error(r.error);
+      $('f').hidden = true; $('ok').hidden = false;
+      $('okTxt').textContent = r.pagado ? 'Ya apareces en el muro de participantes.' : 'Aparecerás en el muro en cuanto tu boleto quede liquidado.';
+    }).catch((err) => { $('msg').textContent = (err && err.message) || 'No se pudo guardar. Intenta de nuevo.'; $('save').disabled = false; $('save').textContent = 'Guardar'; });
+  });
+})();
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "56f4555a49fc4941a8de00b88203edea"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

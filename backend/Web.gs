@@ -30,6 +30,8 @@ function webApi_(p) {
     if (p.op === 'micodigo') return webJson_(webMiCodigo_(p.cel));
     if (p.op === 'evento') return webJson_(webRegistrarEvento_(p.e, p.v, ''));
     if (p.op === 'muro') return webJson_(webMuro_());
+    if (p.op === 'muroinfo') return webJson_(webMuroInfo_(p));
+    if (p.op === 'muroguardar') return webJson_(webMuroGuardar_(p));
     return webJson_({ ok: true, rifa: NOMBRE_RIFA });
   } catch (err) {
     return webJson_({ ok: false, error: String(err && err.message || err) });
@@ -368,7 +370,12 @@ function webGuardarMuro_(d, folio, nombreComprador, cel) {
     if (WEB_DEDICATORIAS.indexOf(tipo) === -1) tipo = '';
     const texto = tipo ? webLimpiarTexto_(d.dedTexto, 90) : '';
     const etiqueta = { nombre: 'Con su nombre', anonimo: 'Anónimo', otro: 'A nombre de otra persona' }[modo];
-    webHojaMuro_().appendRow([new Date(), folio, etiqueta, mostrado, tipo, texto, nombreComprador, cel, 'SI']);
+    const fila = [new Date(), folio, etiqueta, mostrado, tipo, texto, nombreComprador, cel, 'SI'];
+    const h = webHojaMuro_();
+    const r = webFilaMuro_(folio);
+    if (r) { fila[8] = h.getRange(r, 9).getValue() || 'SI'; h.getRange(r, 1, 1, 9).setValues([fila]); }
+    else h.appendRow(fila);
+    CacheService.getScriptCache().remove('web_muro');
   } catch (err) {
     registrarLog_('WEB', 'ERROR_MURO', String(err));
   }
@@ -505,3 +512,110 @@ function webPruebaCorreoComprador() {
   const html = '<div style="font-family:Arial;padding:20px;text-align:center"><h2>Vista previa</h2><p>(aquí va el contenido normal del correo al comprador)</p></div>';
   enviarCorreo_('jonathan@ben-hamu.com', NOMBRE_RIFA + ' — prueba bloque comprador', 'Prueba', webConCompartirComprador_(html, 'prueba-no-vendedor@example.com'));
 }
+
+/* ---------- INVITAR A LOS QUE YA COMPRARON A ELEGIR CÓMO APARECER ---------- */
+function webFilaMuro_(folio) {
+  const h = webHojaMuro_();
+  if (h.getLastRow() < 2) return null;
+  const v = h.getRange(2, 2, h.getLastRow() - 1, 1).getValues();
+  for (let i = 0; i < v.length; i++) if (Number(v[i][0]) === Number(folio)) return i + 2;
+  return null;
+}
+
+function webValidarLinkMuro_(p) {
+  const f = Number(p.f);
+  if (!f || String(p.t || '') !== firmaPago_(f)) return null;
+  const b = obtenerBoleto_(normalizarFolio_(f));
+  if (!b || !webEstaVendido_([b.folio, b.comprador, b.vendedor, b.precio, b.pagado, b.saldo, b.estado])) return null;
+  return b;
+}
+
+function webMuroInfo_(p) {
+  const b = webValidarLinkMuro_(p);
+  if (!b) return { ok: false, error: 'Este link no es válido.' };
+  const persona = buscarPersonaPorCelular_(b.comprador);
+  const r = webFilaMuro_(b.folio);
+  let actual = null;
+  if (r) {
+    const v = webHojaMuro_().getRange(r, 1, 1, 9).getValues()[0];
+    actual = { modo: v[2] === 'Anónimo' ? 'anonimo' : (v[2] === 'A nombre de otra persona' ? 'otro' : 'nombre'), aNombre: v[2] === 'A nombre de otra persona' ? v[3] : '', dedTipo: v[4], dedTexto: v[5] };
+  }
+  return { ok: true, folio: Number(b.folio), nombre: persona ? String(persona.nombre) : '', pagado: Number(b.saldo) === 0, actual: actual };
+}
+
+function webMuroGuardar_(p) {
+  const b = webValidarLinkMuro_(p);
+  if (!b) return { ok: false, error: 'Este link no es válido.' };
+  const persona = buscarPersonaPorCelular_(b.comprador);
+  webGuardarMuro_({ modo: p.modo, aNombre: p.aNombre, dedTipo: p.dedTipo, dedTexto: p.dedTexto },
+    Number(b.folio), persona ? String(persona.nombre) : '', normalizarTelefono_(b.comprador));
+  registrarLog_('WEB', 'MURO_ELEGIDO', 'Folio ' + b.folio + ': ' + (p.modo || 'nombre'));
+  return { ok: true, pagado: Number(b.saldo) === 0 };
+}
+
+function webLinkMuro_(folio) {
+  return WEB_SITIO_URL + 'muro.html?f=' + Number(folio) + '&t=' + firmaPago_(folio);
+}
+
+function webCorreoInvitacionMuro_(nombre, folios) {
+  const botones = folios.map(function (f) {
+    return '<div style="margin:10px 0"><a href="' + webLinkMuro_(f) + '" style="display:inline-block;background:#c4914a;color:#1a1209;text-decoration:none;padding:13px 24px;border-radius:30px;letter-spacing:1px;font-size:13px;font-weight:bold">' +
+      (folios.length > 1 ? 'ELEGIR PARA EL BOLETO ' + String(f).padStart(4, '0') : 'ELEGIR CÓMO APAREZCO') + '</a></div>';
+  }).join('');
+  return '<div style="background:#0a0908;padding:36px 16px;font-family:Helvetica,Arial,sans-serif;color:#ece6dc">' +
+    '<div style="max-width:540px;margin:0 auto;text-align:center">' +
+    '<div style="letter-spacing:8px;color:#d2a45c;font-size:13px">OR BARAK</div>' +
+    '<h1 style="font-weight:400;letter-spacing:3px;font-size:24px;margin:22px 0 6px;color:#fff">MURO DE PARTICIPANTES</h1>' +
+    '<div style="width:80px;height:1px;background:#d2a45c;margin:18px auto"></div>' +
+    '<p style="font-size:16px;line-height:1.55">Hola ' + esc2_(String(nombre).split(' ')[0]) + ', ¡gracias por participar en la ' + NOMBRE_RIFA + '!</p>' +
+    '<p style="font-size:15px;line-height:1.55;color:#cfc7ba">En la página de la rifa tenemos un <b style="color:#f2d6a0">muro de participantes</b>. ' +
+    '¿Cómo quieres aparecer? Puedes salir con tu nombre, como <b style="color:#f2d6a0">anónimo</b> o <b style="color:#f2d6a0">a nombre de alguien más</b>, ' +
+    'y agregar una <b style="color:#f2d6a0">dedicatoria</b> (Leilui Nishmat, Refuá Shelemá, Hatzlajá…).</p>' +
+    '<div style="margin:24px 0">' + botones + '</div>' +
+    '<p style="font-size:13px;color:#a59c8f;line-height:1.5">Solo toma un minuto. Si no eliges, no apareces en el muro. Tu boleto aparece una vez que esté liquidado.</p>' +
+    '</div></div>';
+}
+
+function esc2_(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+/** Manda la invitación a quienes ya compraron y aún no eligieron. soloPrueba=true → solo a jonathan@ben-hamu.com. */
+function webEnviarInvitacionesMuro(soloPrueba) {
+  const inv = webHoja_('WEB_INVITACIONES_MURO', ['Fecha', 'Folio', 'Correo', 'Nombre']);
+  const enviados = {};
+  if (inv.getLastRow() > 1) inv.getRange(2, 2, inv.getLastRow() - 1, 1).getValues().forEach(function (r) { enviados[Number(r[0])] = true; });
+  const enMuro = {};
+  const hm = webHojaMuro_();
+  if (hm.getLastRow() > 1) hm.getRange(2, 2, hm.getLastRow() - 1, 1).getValues().forEach(function (r) { enMuro[Number(r[0])] = true; });
+  const personas = {};
+  sh_(SH_COMPRADORES).getDataRange().getValues().slice(1).forEach(function (r) {
+    if (r[0] !== '') personas[normalizarTelefono_(r[0])] = { nombre: String(r[1]).trim(), correo: String(r[2]).trim().toLowerCase() };
+  });
+  const porCorreo = {};
+  webBoletos_().filter(webEstaVendido_).forEach(function (r) {
+    const f = Number(r[0]);
+    if (enMuro[f] || enviados[f]) return;
+    const p = personas[normalizarTelefono_(r[1])];
+    if (!p || !/@/.test(p.correo)) return;
+    (porCorreo[p.correo] = porCorreo[p.correo] || { nombre: p.nombre, folios: [] }).folios.push(f);
+  });
+  const correos = Object.keys(porCorreo);
+  if (soloPrueba === true) {
+    if (!correos.length) { Logger.log('No hay pendientes.'); return; }
+    const x = porCorreo[correos[0]];
+    enviarCorreo_('jonathan@ben-hamu.com', '[PRUEBA] ' + NOMBRE_RIFA + ' — ¿cómo quieres aparecer en el muro?', 'Elige cómo apareces: ' + webLinkMuro_(x.folios[0]), webCorreoInvitacionMuro_(x.nombre, x.folios));
+    Logger.log('Prueba enviada (ejemplo de ' + x.folios.length + ' folio(s)). Pendientes por enviar: ' + correos.length + ' correos.');
+    return;
+  }
+  let n = 0;
+  correos.forEach(function (c) {
+    const x = porCorreo[c];
+    try {
+      enviarCorreo_(c, NOMBRE_RIFA + ' — ¿cómo quieres aparecer en el muro?', 'Elige cómo apareces en el muro: ' + x.folios.map(webLinkMuro_).join(' '), webCorreoInvitacionMuro_(x.nombre, x.folios));
+      x.folios.forEach(function (f) { inv.appendRow([new Date(), f, c, x.nombre]); });
+      n++;
+    } catch (err) { registrarLog_('WEB', 'ERROR_INVITACION_MURO', c + ': ' + err); }
+  });
+  Logger.log('Invitaciones enviadas: ' + n + ' de ' + correos.length);
+}
+
+function webPruebaInvitacionMuro() { webEnviarInvitacionesMuro(true); }
