@@ -19,7 +19,7 @@ window.RIFA = {
   WHATSAPP: '526572871690',               // con 52 al inicio
   CORREO_COMPROBANTES: 'contacto@orbarakmx.com',
   FORM_VENDER_URL: 'https://forms.gle/18wzcdVxpph7ZfBd9',
-  FORM_CONSULTA_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSevM2e1xbVzR7wyVCy4TU_xOfLra_wcewVsmEG2f5A85tqcHQ/viewform',
+  FORM_CONSULTA_URL: 'consulta/',
 
   // Número de permiso de la Dirección General de Juegos y Sorteos (SEGOB).
   // Se muestra en el pie de página cuando se llena.

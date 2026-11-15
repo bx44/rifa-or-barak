@@ -1,7 +1,122 @@
 <!doctype html>
-<html lang="es"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Consulta tu boleto — Gran Rifa Or Barak 2026</title>
-<meta http-equiv="refresh" content="0; url=https://docs.google.com/forms/d/e/1FAIpQLSevM2e1xbVzR7wyVCy4TU_xOfLra_wcewVsmEG2f5A85tqcHQ/viewform">
-<style>body{background:#0e0d0b;color:#f2d6a0;font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#f2d6a0}</style>
-</head><body><p>Abriendo la consulta de boletos…<br><a href="https://docs.google.com/forms/d/e/1FAIpQLSevM2e1xbVzR7wyVCy4TU_xOfLra_wcewVsmEG2f5A85tqcHQ/viewform">Toca aquí si no abre</a></p></body></html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Verifica tu boleto · Gran Rifa Or Barak 2026</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a0908">
+<link rel="icon" href="../assets/escudo-sm.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .mw{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:50px 18px}
+  .mw-in{max-width:520px;width:100%}
+  .mw .shield{max-width:110px;margin:0 auto 18px;display:block}
+  .mw h1{font-weight:400;font-size:clamp(26px,6vw,36px);letter-spacing:.04em;margin:0 0 8px;text-align:center}
+  .mw .lead{text-align:center;color:var(--muted);margin:0 0 26px}
+  .mw .card{padding:26px 22px}
+  .tk{border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:14px}
+  .tk-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .tk-folio{font-size:30px;font-weight:500;letter-spacing:.06em;color:var(--gold-hi)}
+  .tk-est{font-size:12px;letter-spacing:.18em;text-transform:uppercase;padding:5px 12px;border-radius:999px;border:1px solid var(--line)}
+  .tk-est.pagado{color:#8fe0a8;border-color:#2f6b43}
+  .tk-est.pend{color:#f2c879;border-color:#7a5a22}
+  .tk-row{display:flex;justify-content:space-between;color:var(--muted);font-size:15px;margin-top:8px}
+  .tk-row b{color:var(--text,#f4efe6);font-weight:500}
+  .tk .btn-col{margin-top:14px}
+  .small{font-size:14px;color:var(--muted);text-align:center;margin-top:22px}
+  .small a{color:var(--gold-hi)}
+</style>
+</head>
+<body>
+<section class="mw hero">
+  <div class="beam" aria-hidden="true"></div>
+  <div class="mw-in">
+    <a href="../"><img class="shield" src="../assets/escudo.jpg" alt="Escudo de Or Barak"></a>
+    <p class="eyebrow center">Gran Rifa Or Barak 2026</p>
+    <h1>Verifica tu boleto</h1>
+    <p class="lead" id="lead">Escribe el celular y el correo con los que se registró tu boleto.</p>
+
+    <form class="card" id="f" novalidate>
+      <div class="field">
+        <label for="cel">Celular (10 dígitos)</label>
+        <input id="cel" type="tel" inputmode="numeric" autocomplete="tel" placeholder="55 1234 5678" required>
+      </div>
+      <div class="field">
+        <label for="correo">Correo</label>
+        <input id="correo" type="email" autocomplete="email" placeholder="tu@correo.com" required>
+      </div>
+      <button class="btn btn-block" id="b" type="submit">Ver mis boletos</button>
+      <p class="form-msg" id="msg" role="alert"></p>
+    </form>
+
+    <div id="res" hidden></div>
+
+    <p class="small">¿Eres vendedor? <a href="https://docs.google.com/forms/d/e/1FAIpQLSdnz5bh7ertQAeIz10DuSGakSOnmxBPM-O-0UwEuT2akRefwQ/viewform" target="_blank" rel="noopener">Consulta el estado de tus ventas</a><br>
+    ¿Dudas? <a id="wa" href="#" target="_blank" rel="noopener">Escríbenos por WhatsApp</a></p>
+  </div>
+</section>
+<script src="../config.js"></script>
+<script>
+(function () {
+  const C = window.RIFA || {};
+  const API = C.API_URL;
+  document.getElementById('wa').href = 'https://wa.me/' + (C.WHATSAPP || '526572871690') + '?text=' + encodeURIComponent('Hola, tengo una duda sobre mi boleto de la Gran Rifa Or Barak 2026.');
+  const $ = (id) => document.getElementById(id);
+  const money = (n) => '$' + Number(n || 0).toLocaleString('es-MX');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  try { const g = JSON.parse(localStorage.getItem('rifa_consulta') || '{}'); if (g.cel) $('cel').value = g.cel; if (g.correo) $('correo').value = g.correo; } catch (e) {}
+
+  $('f').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const cel = $('cel').value.replace(/\D/g, '').slice(-10);
+    const correo = $('correo').value.trim().toLowerCase();
+    $('msg').textContent = '';
+    if (cel.length !== 10) { $('msg').textContent = 'Escribe tu celular a 10 dígitos.'; return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) { $('msg').textContent = 'Escribe tu correo.'; return; }
+    $('b').disabled = true; $('b').textContent = 'Buscando…';
+    try {
+      const q = new URLSearchParams({ accion: 'web', op: 'misboletos', cel: cel, correo: correo });
+      const r = await (await fetch(API + '?' + q.toString())).json();
+      if (!r.ok) { $('msg').textContent = r.error || 'No se pudo consultar. Intenta de nuevo.'; return; }
+      try { localStorage.setItem('rifa_consulta', JSON.stringify({ cel: cel, correo: correo })); } catch (e) {}
+      render(r);
+    } catch (e) {
+      $('msg').textContent = 'No se pudo conectar. Revisa tu internet e intenta de nuevo.';
+    } finally {
+      $('b').disabled = false; $('b').textContent = 'Ver mis boletos';
+    }
+  });
+
+  function render(r) {
+    $('f').hidden = true;
+    const bs = r.boletos || [];
+    $('lead').textContent = bs.length
+      ? (r.nombre ? 'Hola ' + r.nombre + ', ' : '') + (bs.length === 1 ? 'este es tu boleto.' : 'estos son tus ' + bs.length + ' boletos.')
+      : 'Tus datos están registrados, pero todavía no tienes boletos asignados. Si acabas de comprar, espera unos minutos o escríbenos.';
+    let h = '';
+    bs.forEach((b) => {
+      const pagado = b.estado === 'Pagado' || b.estado === 'Ganador';
+      h += '<div class="tk card">' +
+        '<div class="tk-top"><div><div class="eyebrow" style="margin:0 0 2px">Folio</div><div class="tk-folio">' + esc(b.folio) + '</div></div>' +
+        '<span class="tk-est ' + (pagado ? 'pagado' : 'pend') + '">' + esc(b.estado === 'Vendido' ? 'Pago pendiente' : b.estado) + '</span></div>' +
+        '<div class="tk-row"><span>Pagado</span><b>' + money(b.pagado) + ' de ' + money(b.precio) + '</b></div>' +
+        (b.saldo > 0 ? '<div class="tk-row"><span>Por pagar</span><b>' + money(b.saldo) + '</b></div>' : '') +
+        (b.vendedor ? '<div class="tk-row"><span>Vendedor</span><b>' + esc(b.vendedor) + '</b></div>' : '') +
+        '<div class="btn-col">' +
+        (b.pagoUrl ? '<a class="btn btn-block" href="' + esc(b.pagoUrl) + '">Pagar ' + money(b.saldo) + '</a>' : '') +
+        (b.muroUrl ? '<a class="btn btn-ghost btn-block btn-sm" href="' + esc(b.muroUrl) + '">Elegir cómo aparezco en el muro</a>' : '') +
+        '</div></div>';
+    });
+    h += '<p class="small"><a href="#" id="otra">Consultar con otros datos</a> · Sorteo: 10 de diciembre de 2026</p>';
+    $('res').innerHTML = h; $('res').hidden = false;
+    $('otra').addEventListener('click', (e) => { e.preventDefault(); $('res').hidden = true; $('f').hidden = false; $('lead').textContent = 'Escribe el celular y el correo con los que se registró tu boleto.'; });
+  }
+})();
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "56f4555a49fc4941a8de00b88203edea"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

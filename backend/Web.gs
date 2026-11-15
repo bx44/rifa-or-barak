@@ -30,6 +30,7 @@ function webApi_(p) {
     if (p.op === 'micodigo') return webJson_(webMiCodigo_(p.cel));
     if (p.op === 'evento') return webJson_(webRegistrarEvento_(p.e, p.v, ''));
     if (p.op === 'muro') return webJson_(webMuro_());
+    if (p.op === 'misboletos') return webJson_(webMisBoletos_(p));
     if (p.op === 'muroinfo') return webJson_(webMuroInfo_(p));
     if (p.op === 'muroguardar') return webJson_(webMuroGuardar_(p));
     return webJson_({ ok: true, rifa: NOMBRE_RIFA });
@@ -620,3 +621,44 @@ function webEnviarInvitacionesMuro(soloPrueba) {
 }
 
 function webPruebaInvitacionMuro() { webEnviarInvitacionesMuro(true); }
+
+
+/* ---------- CONSULTA DEL COMPRADOR EN LA WEB (rifa.orbarakmx.com/consulta) ----------
+ * Pide celular + correo; ambos tienen que coincidir con el mismo registro de COMPRADORES.
+ * Límite de intentos por celular para que nadie pueda adivinar datos. */
+function webMisBoletos_(p) {
+  const cel = normalizarTelefono_(p.cel);
+  const correo = String(p.correo || '').trim().toLowerCase();
+  if (cel.length !== 10) return { ok: false, error: 'Escribe tu celular a 10 dígitos.' };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)) return { ok: false, error: 'Escribe tu correo.' };
+
+  const cache = CacheService.getScriptCache();
+  const k = 'mb_' + cel, n = Number(cache.get(k) || 0);
+  if (n >= 12) return { ok: false, error: 'Demasiados intentos. Vuelve a intentar en media hora.' };
+  cache.put(k, String(n + 1), 1800);
+
+  const personas = sh_(SH_COMPRADORES).getDataRange().getValues();
+  personas.shift();
+  let nombre = '', coincide = false;
+  const nombrePorCel = {};
+  personas.forEach(function (r) {
+    const c = normalizarTelefono_(r[0]);
+    nombrePorCel[c] = r[1];
+    if (c === cel && String(r[2]).trim().toLowerCase() === correo) { coincide = true; nombre = String(r[1] || ''); }
+  });
+  if (!coincide) return { ok: false, error: 'No encontramos boletos con ese celular y ese correo. Usa los mismos datos con los que se registró tu boleto.' };
+
+  const boletos = webBoletos_().filter(function (r) { return normalizarTelefono_(r[1]) === cel; }).map(function (r) {
+    const b = { folio: r[0], precio: Number(r[3]) || 0, pagado: Number(r[4]) || 0, saldo: Number(r[5]) || 0, estado: String(r[6]).trim() };
+    const vend = String(nombrePorCel[normalizarTelefono_(r[2])] || '').split(' ')[0];
+    return {
+      folio: String(b.folio).padStart(4, '0'),
+      vendedor: vend,
+      precio: b.precio, pagado: b.pagado, saldo: b.saldo,
+      estado: estadoVisible_(b).texto,
+      pagoUrl: (b.saldo > 0 && b.estado === 'Vendido') ? webUrlPago_(b.folio) : '',
+      muroUrl: webLinkMuro_(b.folio)
+    };
+  });
+  return { ok: true, nombre: nombre.split(' ')[0], boletos: boletos };
+}
