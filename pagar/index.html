@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paga tu boleto · Gran Rifa Or Barak 2026</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0a0908">
+<link rel="icon" href="../assets/escudo-sm.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  .mw{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:50px 18px}
+  .mw-in{max-width:540px;width:100%}
+  .mw .shield{max-width:100px;margin:0 auto 16px;display:block}
+  .mw h1{font-weight:400;font-size:clamp(26px,6vw,36px);letter-spacing:.04em;margin:0 0 8px;text-align:center}
+  .mw .lead{text-align:center;color:var(--muted);margin:0 0 22px}
+  .sum{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 22px}
+  .sum .fol{font-size:30px;font-weight:500;letter-spacing:.06em;color:var(--gold-hi)}
+  .sum .amt{text-align:right}
+  .sum .amt b{display:block;font-size:26px;font-weight:500}
+  .opt{margin-top:14px;padding:20px 22px}
+  .opt h2{font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-weight:500;margin:0 0 8px}
+  .opt p{margin:0 0 12px;color:var(--muted);font-size:15.5px}
+  .dato{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);padding:10px 0}
+  .dato span{color:var(--muted);font-size:14px}
+  .dato b{font-weight:500;font-size:16.5px;word-break:break-all;text-align:right}
+  .copy{background:none;border:1px solid var(--line);color:var(--gold-hi);border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;cursor:pointer;flex-shrink:0}
+  .copy:hover{background:rgba(210,164,92,.08)}
+  .small{font-size:14px;color:var(--muted);text-align:center;margin-top:22px}
+  .small a{color:var(--gold-hi)}
+  .paid{text-align:center;padding:26px 22px}
+  .paid .big{font-size:44px;color:var(--gold)}
+</style>
+</head>
+<body>
+<section class="mw hero">
+  <div class="beam" aria-hidden="true"></div>
+  <div class="mw-in">
+    <a href="../"><img class="shield" src="../assets/escudo.jpg" alt="Escudo de Or Barak"></a>
+    <p class="eyebrow center">Gran Rifa Or Barak 2026</p>
+    <h1>Paga tu boleto</h1>
+    <p class="lead" id="lead">Cargando…</p>
+    <div id="app" hidden></div>
+    <p class="small">¿Dudas? <a id="wa" href="#" target="_blank" rel="noopener">Escríbenos por WhatsApp</a> · <a href="../consulta/">Verifica tu boleto</a></p>
+  </div>
+</section>
+<script src="../config.js"></script>
+<script>
+(function () {
+  const C = window.RIFA || {};
+  const $ = (id) => document.getElementById(id);
+  const money = (n) => '$' + Number(n || 0).toLocaleString('es-MX');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const wa = (num, txt) => 'https://wa.me/' + num + '?text=' + encodeURIComponent(txt);
+  $('wa').href = wa(C.WHATSAPP || '526572871690', 'Hola, tengo una duda sobre el pago de mi boleto de la Gran Rifa Or Barak 2026.');
+  const p = new URLSearchParams(location.search);
+
+  (async () => {
+    try {
+      const q = new URLSearchParams({ accion: 'web', op: 'pagoinfo', f: p.get('f') || '', t: p.get('t') || '' });
+      const r = await (await fetch(C.API_URL + '?' + q.toString())).json();
+      if (!r.ok) { $('lead').textContent = r.error || 'No se pudo cargar tu boleto.'; return; }
+      render(r);
+    } catch (e) {
+      $('lead').textContent = 'No se pudo conectar. Revisa tu internet y recarga la página.';
+    }
+  })();
+
+  function render(r) {
+    const num = r.whatsapp || C.WHATSAPP;
+    let h = '<div class="card sum"><div><div class="eyebrow" style="margin:0 0 2px">Folio</div><div class="fol">' + esc(r.folio) + '</div></div>' +
+      '<div class="amt"><span class="muted">' + (r.saldo > 0 ? (r.pagado > 0 ? 'Te falta pagar' : 'Total a pagar') : 'Pagado') + '</span><b>' + money(r.saldo > 0 ? r.saldo : r.pagado) + '</b></div></div>';
+    if (!(r.saldo > 0)) {
+      $('lead').textContent = 'Tu boleto ya está liquidado. ¡Mucha suerte!';
+      h += '<div class="card paid"><div class="big">✓</div><p>Ya participas en el sorteo del 10 de diciembre de 2026.</p></div>';
+    } else {
+      $('lead').textContent = 'Elige cómo quieres pagar. Tu boleto participa cuando quede liquidado antes del sorteo.';
+      if (r.tarjetaUrl) h += '<div class="card opt"><h2>Tarjeta</h2><p>Pago seguro con Stripe. Puedes pagar a meses con tarjeta de crédito participante. Se registra al instante.</p>' +
+        '<a class="btn btn-block" href="' + esc(r.tarjetaUrl) + '">Pagar ' + money(r.saldo) + ' con tarjeta</a></div>';
+      h += '<div class="card opt"><h2>Transferencia</h2><p>Transfiere ' + money(r.saldo) + ' a esta cuenta y manda tu comprobante.</p>' +
+        dato('Beneficiario', r.beneficiario) + dato('Banco', r.banco) + dato('CLABE', r.clabe, true) + dato('Concepto', 'Rifa folio ' + r.folio, true) +
+        '<div class="btn-col"><a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' + esc(wa(num, 'Hola, aquí está mi comprobante de transferencia del boleto ' + r.folio + ' de la Gran Rifa Or Barak 2026.')) + '">Enviar comprobante por WhatsApp</a>' +
+        (r.correoComprobantes ? '<a class="btn btn-ghost btn-block btn-sm" href="mailto:' + esc(r.correoComprobantes) + '?subject=' + encodeURIComponent('Comprobante boleto ' + r.folio) + '">Enviar comprobante por correo</a>' : '') +
+        '</div><p style="margin:12px 0 0;font-size:14px">Te llega un correo cuando tu pago quede registrado.</p></div>';
+      h += '<div class="card opt"><h2>Efectivo</h2><p>Entrega ' + money(r.saldo) + ' a la persona que te vendió el boleto o coordina la entrega con nosotros. Pide que registren tu pago con el folio ' + esc(r.folio) + '.</p>' +
+        '<a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' + esc(wa(num, 'Hola, quiero pagar en efectivo mi boleto ' + r.folio + ' de la Gran Rifa Or Barak 2026.')) + '">Coordinar pago en efectivo</a></div>';
+    }
+    $('app').innerHTML = h; $('app').hidden = false;
+    document.querySelectorAll('.copy').forEach((b) => b.addEventListener('click', () => {
+      const v = b.getAttribute('data-v');
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => { b.textContent = 'Copiado'; setTimeout(() => (b.textContent = 'Copiar'), 1500); }).catch(() => {});
+    }));
+  }
+  function dato(k, v, copiar) {
+    return '<div class="dato"><span>' + esc(k) + '</span><b>' + esc(v) + '</b>' + (copiar ? '<button type="button" class="copy" data-v="' + esc(v) + '">Copiar</button>' : '') + '</div>';
+  }
+})();
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "56f4555a49fc4941a8de00b88203edea"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

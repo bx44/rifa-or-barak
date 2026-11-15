@@ -31,6 +31,7 @@ function webApi_(p) {
     if (p.op === 'evento') return webJson_(webRegistrarEvento_(p.e, p.v, ''));
     if (p.op === 'muro') return webJson_(webMuro_());
     if (p.op === 'misboletos') return webJson_(webMisBoletos_(p));
+    if (p.op === 'pagoinfo') return webJson_(webPagoInfo_(p));
     if (p.op === 'muroinfo') return webJson_(webMuroInfo_(p));
     if (p.op === 'muroguardar') return webJson_(webMuroGuardar_(p));
     return webJson_({ ok: true, rifa: NOMBRE_RIFA });
@@ -194,7 +195,7 @@ function webComprar_(d) {
       });
     } catch (err) { registrarLog_('SISTEMA', 'ERROR_EMAIL', String(err)); }
 
-    return webJson_({ ok: true, folio: folio, nombre: nombre, vendedor: vendedor.nombre, pagoUrl: webUrlPago_(folio) });
+    return webJson_({ ok: true, folio: folio, nombre: nombre, vendedor: vendedor.nombre, pagoUrl: webUrlPaginaPago_(folio) });
   } catch (err) {
     try { registrarLog_('WEB', 'ERROR_WEB', String(err)); } catch (e2) {}
     return webJson_({ ok: false, error: 'No se pudo registrar. Intenta de nuevo o escríbenos por WhatsApp.' });
@@ -656,9 +657,35 @@ function webMisBoletos_(p) {
       vendedor: vend,
       precio: b.precio, pagado: b.pagado, saldo: b.saldo,
       estado: estadoVisible_(b).texto,
-      pagoUrl: (b.saldo > 0 && b.estado === 'Vendido') ? webUrlPago_(b.folio) : '',
+      pagoUrl: (b.saldo > 0 && b.estado === 'Vendido') ? webUrlPaginaPago_(b.folio) : '',
       muroUrl: webLinkMuro_(b.folio)
     };
   });
   return { ok: true, nombre: nombre.split(' ')[0], boletos: boletos };
+}
+
+
+/* ---------- PÁGINA DE PAGO (rifa.orbarakmx.com/pagar) ----------
+ * Muestra las formas de pago de un folio: tarjeta (Stripe), transferencia y efectivo.
+ * Los datos bancarios salen de las constantes de Código.gs y solo se entregan
+ * con una liga firmada (f + t), así no quedan publicados en el repositorio. */
+function webUrlPaginaPago_(folio) {
+  return WEB_SITIO_URL + 'pagar/?f=' + Number(folio) + '&t=' + firmaPago_(folio);
+}
+
+function webPagoInfo_(p) {
+  const f = Number(p.f);
+  if (!f || String(p.t || '') !== firmaPago_(f)) return { ok: false, error: 'La liga de pago no es válida. Pídela de nuevo por WhatsApp.' };
+  const r = webBoletos_().filter(function (x) { return Number(x[0]) === f; })[0];
+  if (!r) return { ok: false, error: 'No encontramos ese boleto.' };
+  const b = { folio: r[0], precio: Number(r[3]) || 0, pagado: Number(r[4]) || 0, saldo: Number(r[5]) || 0, estado: String(r[6]).trim() };
+  return {
+    ok: true,
+    folio: String(f).padStart(4, '0'),
+    precio: b.precio, pagado: b.pagado, saldo: b.saldo,
+    estado: estadoVisible_(b).texto,
+    tarjetaUrl: (b.saldo > 0 && b.estado === 'Vendido') ? webUrlPago_(f) : '',
+    beneficiario: RAZON_SOCIAL, banco: BANCO, clabe: CLABE,
+    correoComprobantes: CORREO_COMPROBANTES, whatsapp: WHATSAPP_ADMIN
+  };
 }

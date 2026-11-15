@@ -156,9 +156,9 @@
     const ov = document.createElement('div');
     ov.className = 'folio-overlay';
     ov.innerHTML = '<div class="folio-card"><p class="eyebrow">Boleto apartado</p><div class="tk-big"><small>Tu número</small><b>' + f + '</b></div>' +
-      '<p>' + (r.nombre || '').split(' ')[0] + ', te llevamos al pago seguro…</p>' +
+      '<p>' + (r.nombre || '').split(' ')[0] + ', ahora elige cómo pagar: tarjeta, transferencia o efectivo…</p>' +
       '<p class="muted small">También te enviamos tu número y tu liga de pago por correo.</p>' +
-      '<a class="btn" href="' + r.pagoUrl + '">Ir a pagar ahora</a></div>';
+      '<a class="btn" href="' + r.pagoUrl + '">Ver formas de pago</a></div>';
     document.body.appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('show'));
   }
