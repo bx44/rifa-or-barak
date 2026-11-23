@@ -48,54 +48,56 @@
   </div>
 </section>
 <script src="../config.js"></script>
+<script src="../i18n.js"></script>
 <script>
 (function () {
   const C = window.RIFA || {};
+  const T = window.T || ((s, v) => { let o = s; if (v) Object.keys(v).forEach((k) => { o = o.split('{' + k + '}').join(v[k]); }); return o; });
   const $ = (id) => document.getElementById(id);
   const money = (n) => '$' + Number(n || 0).toLocaleString('es-MX');
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const wa = (num, txt) => 'https://wa.me/' + num + '?text=' + encodeURIComponent(txt);
-  $('wa').href = wa(C.WHATSAPP || '526572871690', 'Hola, tengo una duda sobre el pago de mi boleto de la Gran Rifa Or Barak 2026.');
+  $('wa').href = wa(C.WHATSAPP || '526572871690', T('Hola, tengo una duda sobre el pago de mi boleto de la Gran Rifa Or Barak 2026.'));
   const p = new URLSearchParams(location.search);
 
   (async () => {
     try {
       const q = new URLSearchParams({ accion: 'web', op: 'pagoinfo', f: p.get('f') || '', t: p.get('t') || '' });
       const r = await (await fetch(C.API_URL + '?' + q.toString())).json();
-      if (!r.ok) { $('lead').textContent = r.error || 'No se pudo cargar tu boleto.'; return; }
+      if (!r.ok) { $('lead').textContent = r.error || T('No se pudo cargar tu boleto.'); return; }
       render(r);
     } catch (e) {
-      $('lead').textContent = 'No se pudo conectar. Revisa tu internet y recarga la página.';
+      $('lead').textContent = T('No se pudo conectar. Revisa tu internet y recarga la página.');
     }
   })();
 
   function render(r) {
     const num = r.whatsapp || C.WHATSAPP;
-    let h = '<div class="card sum"><div><div class="eyebrow" style="margin:0 0 2px">Folio</div><div class="fol">' + esc(r.folio) + '</div></div>' +
-      '<div class="amt"><span class="muted">' + (r.saldo > 0 ? (r.pagado > 0 ? 'Te falta pagar' : 'Total a pagar') : 'Pagado') + '</span><b>' + money(r.saldo > 0 ? r.saldo : r.pagado) + '</b></div></div>';
+    let h = '<div class="card sum"><div><div class="eyebrow" style="margin:0 0 2px">' + T('Folio') + '</div><div class="fol">' + esc(r.folio) + '</div></div>' +
+      '<div class="amt"><span class="muted">' + T(r.saldo > 0 ? (r.pagado > 0 ? 'Te falta pagar' : 'Total a pagar') : 'Pagado') + '</span><b>' + money(r.saldo > 0 ? r.saldo : r.pagado) + '</b></div></div>';
     if (!(r.saldo > 0)) {
-      $('lead').textContent = 'Tu boleto ya está liquidado. ¡Mucha suerte!';
-      h += '<div class="card paid"><div class="big">✓</div><p>Ya participas en el sorteo del 10 de diciembre de 2026.</p></div>';
+      $('lead').textContent = T('Tu boleto ya está liquidado. ¡Mucha suerte!');
+      h += '<div class="card paid"><div class="big">✓</div><p>' + T('Ya participas en el sorteo del 10 de diciembre de 2026.') + '</p></div>';
     } else {
-      $('lead').textContent = 'Elige cómo quieres pagar. Tu boleto participa cuando quede liquidado antes del sorteo.';
-      if (r.tarjetaUrl) h += '<div class="card opt"><h2>Tarjeta</h2><p>Pago seguro con Stripe. Puedes pagar a meses con tarjeta de crédito participante. Se registra al instante.</p>' +
-        '<a class="btn btn-block" href="' + esc(r.tarjetaUrl) + '">Pagar ' + money(r.saldo) + ' con tarjeta</a></div>';
-      h += '<div class="card opt"><h2>Transferencia</h2><p>Transfiere ' + money(r.saldo) + ' a esta cuenta y manda tu comprobante.</p>' +
-        dato('Beneficiario', r.beneficiario) + dato('Banco', r.banco) + dato('CLABE', r.clabe, true) + dato('Concepto', 'Rifa folio ' + r.folio, true) +
-        '<div class="btn-col"><a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' + esc(wa(num, 'Hola, aquí está mi comprobante de transferencia del boleto ' + r.folio + ' de la Gran Rifa Or Barak 2026.')) + '">Enviar comprobante por WhatsApp</a>' +
-        (r.correoComprobantes ? '<a class="btn btn-ghost btn-block btn-sm" href="mailto:' + esc(r.correoComprobantes) + '?subject=' + encodeURIComponent('Comprobante boleto ' + r.folio) + '">Enviar comprobante por correo</a>' : '') +
-        '</div><p style="margin:12px 0 0;font-size:14px">Te llega un correo cuando tu pago quede registrado.</p></div>';
-      h += '<div class="card opt"><h2>Efectivo</h2><p>Entrega ' + money(r.saldo) + ' a la persona que te vendió el boleto o coordina la entrega con nosotros. Pide que registren tu pago con el folio ' + esc(r.folio) + '.</p>' +
-        '<a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' + esc(wa(num, 'Hola, quiero pagar en efectivo mi boleto ' + r.folio + ' de la Gran Rifa Or Barak 2026.')) + '">Coordinar pago en efectivo</a></div>';
+      $('lead').textContent = T('Elige cómo quieres pagar. Tu boleto participa cuando quede liquidado antes del sorteo.');
+      if (r.tarjetaUrl) h += '<div class="card opt"><h2>' + T('Tarjeta') + '</h2><p>' + T('Pago seguro con Stripe. Puedes pagar a meses con tarjeta de crédito participante. Se registra al instante.') + '</p>' +
+        '<a class="btn btn-block" href="' + esc(r.tarjetaUrl) + '">' + T('Pagar {m} con tarjeta', { m: money(r.saldo) }) + '</a></div>';
+      h += '<div class="card opt"><h2>' + T('Transferencia') + '</h2><p>' + T('Transfiere {m} a esta cuenta y manda tu comprobante.', { m: money(r.saldo) }) + '</p>' +
+        dato(T('Beneficiario'), r.beneficiario) + dato(T('Banco'), r.banco) + dato(T('CLABE'), r.clabe, true) + dato(T('Concepto'), 'Rifa folio ' + r.folio, true) +
+        '<div class="btn-col"><a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' + esc(wa(num, T('Hola, aquí está mi comprobante de transferencia del boleto {f} de la Gran Rifa Or Barak 2026.', { f: r.folio }))) + '">' + T('Enviar comprobante por WhatsApp') + '</a>' +
+        (r.correoComprobantes ? '<a class="btn btn-ghost btn-block btn-sm" href="mailto:' + esc(r.correoComprobantes) + '?subject=' + encodeURIComponent(T('Comprobante boleto {f}', { f: r.folio })) + '">' + T('Enviar comprobante por correo') + '</a>' : '') +
+        '</div><p style="margin:12px 0 0;font-size:14px">' + T('Te llega un correo cuando tu pago quede registrado.') + '</p></div>';
+      h += '<div class="card opt"><h2>' + T('Efectivo') + '</h2><p>' + T('Entrega {m} a la persona que te vendió el boleto o coordina la entrega con nosotros. Pide que registren tu pago con el folio {f}.', { m: money(r.saldo), f: esc(r.folio) }) + '</p>' +
+        '<a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' + esc(wa(num, T('Hola, quiero pagar en efectivo mi boleto {f} de la Gran Rifa Or Barak 2026.', { f: r.folio }))) + '">' + T('Coordinar pago en efectivo') + '</a></div>';
     }
     $('app').innerHTML = h; $('app').hidden = false;
     document.querySelectorAll('.copy').forEach((b) => b.addEventListener('click', () => {
       const v = b.getAttribute('data-v');
-      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => { b.textContent = 'Copiado'; setTimeout(() => (b.textContent = 'Copiar'), 1500); }).catch(() => {});
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => { b.textContent = T('Copiado'); setTimeout(() => (b.textContent = T('Copiar')), 1500); }).catch(() => {});
     }));
   }
   function dato(k, v, copiar) {
-    return '<div class="dato"><span>' + esc(k) + '</span><b>' + esc(v) + '</b>' + (copiar ? '<button type="button" class="copy" data-v="' + esc(v) + '">Copiar</button>' : '') + '</div>';
+    return '<div class="dato"><span>' + esc(k) + '</span><b>' + esc(v) + '</b>' + (copiar ? '<button type="button" class="copy" data-v="' + esc(v) + '">' + T('Copiar') + '</button>' : '') + '</div>';
   }
 })();
 </script>

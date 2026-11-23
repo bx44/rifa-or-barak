@@ -16,3 +16,6 @@ El contador lee BOLETOS en vivo. Códigos de vendedor = iniciales + últimos 4 d
 
 ## Si haces una implementación nueva del script
 Actualiza la implementación existente (Implementar → Administrar → Editar → Nueva versión) para que la URL no cambie; si cambia, actualízala aquí en `config.js` y en la variable `RIFA_GAS_URL` del Worker.
+
+## Idiomas (español, inglés, hebreo)
+`i18n.js` traduce todas las páginas. El idioma se elige así: `?lang=es|en|he` en la URL → el que la persona eligió antes en el selector (arriba a la derecha) → por ubicación del dispositivo (zona horaria de Israel = hebreo, de México = español, resto = inglés; si el teléfono está en hebreo o español se respeta). En hebreo la página se muestra de derecha a izquierda. Para corregir una traducción, edita el diccionario `DICT` en `i18n.js`. Los posters (imágenes) y los correos siguen en español.

@@ -44,18 +44,20 @@
   </div>
 </section>
 <script src="config.js"></script>
+<script src="i18n.js"></script>
 <script>
 (function(){
   const C = window.RIFA, $ = (id) => document.getElementById(id);
+  const T = window.T || ((s, v) => { let o = s; if (v) Object.keys(v).forEach((k) => { o = o.split('{' + k + '}').join(v[k]); }); return o; });
   const sid = new URLSearchParams(location.search).get('session_id');
   const home = location.origin + location.pathname.replace(/gracias\.html$/, '');
-  $('share').href = 'https://wa.me/?text=' + encodeURIComponent('¡Ya tengo mi boleto de la ' + C.NOMBRE + '! Un solo boleto, dos ganadores: dos Mazda 2. ' + home);
+  $('share').href = 'https://wa.me/?text=' + encodeURIComponent(T('¡Ya tengo mi boleto de la {r}! Un solo boleto, dos ganadores: dos Mazda 2. {l}', { r: T(C.NOMBRE), l: home }));
 
   function done(title, sub) {
     $('spin').hidden = true; $('title').textContent = title; $('sub').textContent = sub; $('actions').hidden = false;
   }
   if (!C.API_URL || !sid) {
-    return done('¡Gracias por tu compra!', 'Tu pago fue recibido. Te enviaremos tus números de boleto por correo.');
+    return done(T('¡Gracias por tu compra!'), T('Tu pago fue recibido. Te enviaremos tus números de boleto por correo.'));
   }
   let tries = 0;
   async function poll() {
@@ -64,16 +66,16 @@
       const r = await (await fetch(C.API_URL + '?action=sesion&id=' + encodeURIComponent(sid))).json();
       if (r.ok && r.estado === 'pagado') {
         $('tickets').innerHTML = r.folios.map((f, i) =>
-          '<div class="tk" style="animation-delay:' + (i * 0.08) + 's"><small>Boleto</small><b>' + f + '</b></div>').join('');
-        return done('¡Gracias, ' + (r.nombre || '').split(' ')[0] + '!',
-          (r.folios.length > 1 ? 'Estos son tus números.' : 'Este es tu número.') + ' También te los enviamos por correo.');
+          '<div class="tk" style="animation-delay:' + (i * 0.08) + 's"><small>' + T('Boleto') + '</small><b>' + f + '</b></div>').join('');
+        return done(T('¡Gracias, {n}!', { n: (r.nombre || '').split(' ')[0] }),
+          T(r.folios.length > 1 ? 'Estos son tus números.' : 'Este es tu número.') + T(' También te los enviamos por correo.'));
       }
       if (r.ok && r.estado === 'pendiente' && tries < 15) return setTimeout(poll, 2500);
       if (!r.ok && tries < 4) return setTimeout(poll, 2500);
-      done('Pago en proceso', 'En cuanto se confirme te enviaremos tus números por correo.');
+      done(T('Pago en proceso'), T('En cuanto se confirme te enviaremos tus números por correo.'));
     } catch (e) {
       if (tries < 4) return setTimeout(poll, 2500);
-      done('¡Gracias por tu compra!', 'Te enviaremos tus números de boleto por correo.');
+      done(T('¡Gracias por tu compra!'), T('Te enviaremos tus números de boleto por correo.'));
     }
   }
   poll();

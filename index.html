@@ -54,19 +54,19 @@
   <div class="hero-copy">
     <p class="eyebrow">Gran Rifa Or Barak 2026</p>
     <h1 class="headline">
-      <span class="line"><span class="hl-white">UN</span> SOLO BOLETO.</span>
-      <span class="line"><span class="hl-gold">DOS</span> GANADORES.</span>
+      <span class="line"><span class="hl-white" data-i18n="hero1a">UN</span><span data-i18n="hero1b"> SOLO BOLETO.</span></span>
+      <span class="line"><span class="hl-gold" data-i18n="hero2a">DOS</span><span data-i18n="hero2b"> GANADORES.</span></span>
     </h1>
     <div class="rule"></div>
     <div class="prizes">
       <div class="prize">
         <svg class="ic" viewBox="0 0 48 48"><use href="#i-car"/></svg>
-        <p>UN <b>MAZDA 2</b><br>PARA EL COMPRADOR.</p>
+        <p data-i18n-html="prize1">UN <b>MAZDA 2</b><br>PARA EL COMPRADOR.</p>
       </div>
       <div class="prize-sep"></div>
       <div class="prize">
         <svg class="ic" viewBox="0 0 48 48"><use href="#i-car"/></svg>
-        <p>OTRO <b>MAZDA 2</b><br>PARA QUIEN VENDIÓ<br>EL BOLETO GANADOR.</p>
+        <p data-i18n-html="prize2">OTRO <b>MAZDA 2</b><br>PARA QUIEN VENDIÓ<br>EL BOLETO GANADOR.</p>
       </div>
     </div>
     <div class="hero-cta">
@@ -176,7 +176,7 @@
         </select>
         <input id="fDedTexto" name="dedTexto" maxlength="90" placeholder="Ej. Moshe ben Sara" hidden>
       </div>
-      <input type="text" id="fHp" name="web_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;width:0;opacity:0">
+      <input type="text" id="fHp" name="web_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:0;top:0;height:0;width:0;opacity:0;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none">
       <label class="consent">
         <input type="checkbox" id="fAcepto" required>
         <span>Acepto las <a href="#bases">bases del sorteo</a> y el aviso de privacidad.</span>
@@ -322,6 +322,7 @@
 </svg>
 
 <script src="config.js"></script>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "56f4555a49fc4941a8de00b88203edea"}'></script><!-- End Cloudflare Web Analytics -->
 </body>

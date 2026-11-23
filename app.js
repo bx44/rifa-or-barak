@@ -2,6 +2,7 @@
   'use strict';
   const C = window.RIFA;
   const $ = (id) => document.getElementById(id);
+  const T = window.T || ((s, v) => { let o = s; if (v) Object.keys(v).forEach((k) => { o = o.split('{' + k + '}').join(v[k]); }); return o; });
   const fmt = (n) => n.toLocaleString('es-MX');
   const money = (n) => '$' + n.toLocaleString('es-MX') + ' MXN';
   const params = new URLSearchParams(location.search);
@@ -25,13 +26,13 @@
 
   /* ---------- enlaces de config ---------- */
   const waLink = (text) => 'https://wa.me/' + C.WHATSAPP + (text ? '?text=' + encodeURIComponent(text) : '');
-  $('waTransfer').href = waLink('Hola, quiero comprar un boleto de la ' + C.NOMBRE + ' por transferencia.');
-  $('btnRegistro').href = waLink('Hola, quiero registrarme como vendedor de la ' + C.NOMBRE + '.');
-  document.querySelectorAll('.js-wa').forEach((a) => (a.href = waLink('Hola, tengo una pregunta sobre la ' + C.NOMBRE + '.')));
+  $('waTransfer').href = waLink(T('Hola, quiero comprar un boleto de la {r} por transferencia.', { r: T(C.NOMBRE) }));
+  $('btnRegistro').href = waLink(T('Hola, quiero registrarme como vendedor de la {r}.', { r: T(C.NOMBRE) }));
+  document.querySelectorAll('.js-wa').forEach((a) => (a.href = waLink(T('Hola, tengo una pregunta sobre la {r}.', { r: T(C.NOMBRE) }))));
   document.querySelectorAll('.js-consulta').forEach((a) => (a.href = C.FORM_CONSULTA_URL));
   document.querySelectorAll('.js-mail').forEach((s) => (s.textContent = C.CORREO_COMPROBANTES));
   if (C.BASES_URL) { $('basesLink').href = C.BASES_URL; $('basesLink').hidden = false; }
-  $('permiso').textContent = C.PERMISO_SEGOB ? 'Permiso SEGOB: ' + C.PERMISO_SEGOB : '';
+  $('permiso').textContent = C.PERMISO_SEGOB ? T('Permiso SEGOB: {p}', { p: C.PERMISO_SEGOB }) : '';
   $('cTotal').textContent = fmt(C.TOTAL_BOLETOS);
 
   /* ---------- reintenta imágenes que fallan (red móvil inestable) ---------- */
@@ -98,16 +99,16 @@
     animateNumber($('cSold'), s.vendidos);
     $('cBar').style.width = Math.min(100, (s.vendidos / total) * 100) + '%';
     const left = Math.max(0, total - s.vendidos);
-    $('cLeft').textContent = left === 0 ? 'Boletos agotados.' : 'Quedan ' + fmt(left) + ' boletos de ' + fmt(total) + '.';
+    $('cLeft').textContent = left === 0 ? T('Boletos agotados.') : T('Quedan {a} boletos de {b}.', { a: fmt(left), b: fmt(total) });
   }
   async function loadStats() {
     if (!HAS_API) {
       $('cSold').textContent = '0';
-      $('cLeft').textContent = fmt(C.TOTAL_BOLETOS) + ' boletos disponibles.';
+      $('cLeft').textContent = T('{n} boletos disponibles.', { n: fmt(C.TOTAL_BOLETOS) });
       return;
     }
     try { const s = await apiGet('stats'); if (s.ok) renderStats(s); }
-    catch (e) { $('cLeft').textContent = fmt(C.TOTAL_BOLETOS) + ' boletos en total.'; }
+    catch (e) { $('cLeft').textContent = T('{n} boletos en total.', { n: fmt(C.TOTAL_BOLETOS) }); }
   }
   loadStats();
   if (HAS_API) setInterval(loadStats, 60000);
@@ -139,26 +140,27 @@
     const code = cleanCode(fVend.value);
     vendHint.className = 'hint'; vendHint.textContent = ''; vendValid = true; fVend.classList.remove('err');
     if (!code || !HAS_API) return;
-    vendHint.textContent = 'Verificando…';
+    vendHint.textContent = T('Verificando…');
     const r = await lookupSeller(code);
     if (cleanCode(fVend.value) !== code) return;
-    if (r && r.ok) { vendHint.className = 'hint ok'; vendHint.textContent = 'Vendedor: ' + r.nombre; }
-    else if (r) { vendValid = false; vendHint.className = 'hint bad'; vendHint.textContent = 'Código no encontrado.'; fVend.classList.add('err'); }
+    if (r && r.ok) { vendHint.className = 'hint ok'; vendHint.textContent = T('Vendedor: {n}', { n: r.nombre }); }
+    else if (r) { vendValid = false; vendHint.className = 'hint bad'; vendHint.textContent = T('Código no encontrado.'); fVend.classList.add('err'); }
     else { vendHint.textContent = ''; }
   }
 
   const qty = 1;
-  if (params.get('cancelado')) { $('formMsg').textContent = 'El pago no se completó. Puedes intentarlo de nuevo.'; }
+  if (params.get('cancelado')) { $('formMsg').textContent = T('El pago no se completó. Puedes intentarlo de nuevo.'); }
 
   /* ---------- compra ---------- */
   function showFolio(r) {
     const f = String(r.folio).padStart(4, '0');
     const ov = document.createElement('div');
     ov.className = 'folio-overlay';
-    ov.innerHTML = '<div class="folio-card"><p class="eyebrow">Boleto apartado</p><div class="tk-big"><small>Tu número</small><b>' + f + '</b></div>' +
-      '<p>' + (r.nombre || '').split(' ')[0] + ', ahora elige cómo pagar: tarjeta, transferencia o efectivo…</p>' +
-      '<p class="muted small">También te enviamos tu número y tu liga de pago por correo.</p>' +
-      '<a class="btn" href="' + r.pagoUrl + '">Ver formas de pago</a></div>';
+    const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    ov.innerHTML = '<div class="folio-card"><p class="eyebrow">' + T('Boleto apartado') + '</p><div class="tk-big"><small>' + T('Tu número') + '</small><b>' + f + '</b></div>' +
+      '<p>' + T('{n}, ahora elige cómo pagar: tarjeta, transferencia o efectivo…', { n: esc((r.nombre || '').split(' ')[0]) }) + '</p>' +
+      '<p class="muted small">' + T('También te enviamos tu número y tu liga de pago por correo.') + '</p>' +
+      '<a class="btn" href="' + esc(r.pagoUrl) + '">' + T('Ver formas de pago') + '</a></div>';
     document.body.appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('show'));
   }
@@ -183,18 +185,18 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.correo)) bad.push('fCorreo');
     if (data.telefono.replace(/\D/g, '').length < 10) bad.push('fTel');
     ['fNombre', 'fCorreo', 'fTel'].forEach((id) => $(id).classList.toggle('err', bad.includes(id)));
-    if (bad.length) { msg.textContent = 'Revisa los campos marcados.'; return; }
+    if (bad.length) { msg.textContent = T('Revisa los campos marcados.'); return; }
     const modoSel = (document.querySelector('input[name=modo]:checked') || {}).value;
-    if (modoSel === 'otro' && data.aNombre.length < 2) { $('fANombre').classList.add('err'); msg.textContent = 'Escribe a nombre de quién quieres el boleto.'; return; }
-    if (data.dedTipo && data.dedTexto.length < 2) { $('fDedTexto').classList.add('err'); msg.textContent = 'Completa la dedicatoria (por ejemplo, el nombre).'; return; }
-    if (!vendValid) { msg.textContent = 'El código de vendedor no es válido. Corrígelo o déjalo vacío.'; return; }
-    if (!$('fAcepto').checked) { msg.textContent = 'Debes aceptar las bases del sorteo.'; return; }
+    if (modoSel === 'otro' && data.aNombre.length < 2) { $('fANombre').classList.add('err'); msg.textContent = T('Escribe a nombre de quién quieres el boleto.'); return; }
+    if (data.dedTipo && data.dedTexto.length < 2) { $('fDedTexto').classList.add('err'); msg.textContent = T('Completa la dedicatoria (por ejemplo, el nombre).'); return; }
+    if (!vendValid) { msg.textContent = T('El código de vendedor no es válido. Corrígelo o déjalo vacío.'); return; }
+    if (!$('fAcepto').checked) { msg.textContent = T('Debes aceptar las bases del sorteo.'); return; }
 
-    payBtn.disabled = true; const label = payBtn.innerHTML; payBtn.textContent = 'Conectando con Stripe…';
+    payBtn.disabled = true; const label = payBtn.innerHTML; payBtn.textContent = T('Conectando con Stripe…');
     try {
       if (HAS_API) {
         const r = await apiPost(data);
-        if (!r.ok) throw new Error(r.error || 'No se pudo registrar tu boleto.');
+        if (!r.ok) throw new Error(r.error || T('No se pudo registrar tu boleto.'));
         showFolio(r);
         setTimeout(() => { location.href = r.pagoUrl; }, 2600);
         return;
@@ -202,11 +204,11 @@
       // Respaldo sin backend: Payment Link de Stripe
       const u = new URL(C.STRIPE_PAYMENT_LINK);
       u.searchParams.set('prefilled_email', data.correo);
-      u.searchParams.set('locale', 'es');
+      u.searchParams.set('locale', window.RIFA_LANG || 'es');
       if (data.vendedor) u.searchParams.set('client_reference_id', data.vendedor);
       location.href = u.toString();
     } catch (e) {
-      msg.textContent = e.message || 'Ocurrió un error. Intenta de nuevo.';
+      msg.textContent = e.message || T('Ocurrió un error. Intenta de nuevo.');
       payBtn.disabled = false; payBtn.innerHTML = label;
     }
   });
@@ -219,16 +221,16 @@
   $('fDedTipo').addEventListener('change', () => {
     const t = $('fDedTipo').value;
     $('fDedTexto').hidden = !t;
-    $('fDedTexto').placeholder = t === 'Otra' ? 'Escribe tu dedicatoria' : (t === 'En honor de' || t === 'Hatzlajá' || t === 'Zivug Hagún' ? 'Ej. Familia Cohen' : 'Ej. Moshe ben Sara');
+    $('fDedTexto').placeholder = T(t === 'Otra' ? 'Escribe tu dedicatoria' : (t === 'En honor de' || t === 'Hatzlajá' || t === 'Zivug Hagún' ? 'Ej. Familia Cohen' : 'Ej. Moshe ben Sara'));
     if (t) $('fDedTexto').focus();
   });
 
   /* ---------- muro de participantes ---------- */
   function haceCuanto(t) {
     const m = Math.max(1, Math.round((Date.now() - t) / 60000));
-    if (m < 60) return 'hace ' + m + ' min';
-    const h = Math.round(m / 60); if (h < 24) return 'hace ' + h + (h === 1 ? ' hora' : ' horas');
-    const d = Math.round(h / 24); return 'hace ' + d + (d === 1 ? ' día' : ' días');
+    if (m < 60) return T('hace {n} min', { n: m });
+    const h = Math.round(m / 60); if (h < 24) return h === 1 ? T('hace 1 hora') : T('hace {n} horas', { n: h });
+    const d = Math.round(h / 24); return d === 1 ? T('hace 1 día') : T('hace {n} días', { n: d });
   }
   function iniciales(n) { return n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase(); }
   let muroItems = [], muroShown = 0;
@@ -243,7 +245,7 @@
       if (it.dedTipo && it.dedTexto) {
         const dd = document.createElement('p'); dd.className = 'wall-ded';
         if (it.dedTipo === 'Otra') { dd.textContent = it.dedTexto; }
-        else { const b = document.createElement('b'); b.textContent = it.dedTipo + ' '; dd.appendChild(b); dd.appendChild(document.createTextNode(it.dedTexto)); }
+        else { const b = document.createElement('b'); b.textContent = T(it.dedTipo) + ' '; dd.appendChild(b); dd.appendChild(document.createTextNode(it.dedTexto)); }
         body.appendChild(dd);
       }
       const tm = document.createElement('p'); tm.className = 'wall-time'; tm.textContent = haceCuanto(it.t); body.appendChild(tm);
@@ -260,7 +262,7 @@
       if (!r.ok || !r.items.length) return;
       muroItems = r.items;
       $('muro').hidden = false;
-      $('wallCount').textContent = r.total === 1 ? '1 persona ya tiene su boleto.' : r.total + ' personas ya tienen su boleto.';
+      $('wallCount').textContent = r.total === 1 ? T('1 persona ya tiene su boleto.') : T('{n} personas ya tienen su boleto.', { n: r.total });
       pintarMuro(window.innerWidth < 700 ? 6 : 12);
     } catch (e) {}
   }
@@ -280,7 +282,7 @@
     if (sCel.value.replace(/\D/g, '').slice(-10) !== cel) return;
     $('sellerOut').hidden = false;
     if (!r.ok) {
-      $('sName').textContent = 'Ese celular no está registrado como vendedor.';
+      $('sName').textContent = T('Ese celular no está registrado como vendedor.');
       $('sCodeTxt').textContent = ''; $('sProgWrap').hidden = true;
       document.querySelector('.linkbox').hidden = true; document.querySelector('.seller-out .btn-row').hidden = true;
       return;
@@ -288,19 +290,19 @@
     document.querySelector('.linkbox').hidden = false; document.querySelector('.seller-out .btn-row').hidden = false;
     const link = baseUrl + '?v=' + encodeURIComponent(r.codigo);
     $('sName').textContent = r.nombre;
-    $('sCodeTxt').textContent = 'Tu código: ' + r.codigo;
+    $('sCodeTxt').textContent = T('Tu código: {c}', { c: r.codigo });
     $('sLink').textContent = link;
     $('sWa').href = 'https://wa.me/?text=' + encodeURIComponent(
-      'Un solo boleto. Dos ganadores. 🚗🚗\nParticipa en la ' + C.NOMBRE + ': un Mazda 2 para el comprador y otro para quien vende el boleto ganador. Sorteo 10 de diciembre.\n' + link);
+      T('Un solo boleto. Dos ganadores. 🚗🚗\nParticipa en la {r}: un Mazda 2 para el comprador y otro para quien vende el boleto ganador. Sorteo 10 de diciembre.\n{l}', { r: T(C.NOMBRE), l: link }));
     $('sProgWrap').hidden = false;
     $('sBar').style.width = Math.min(100, (r.vendidos / r.max) * 100) + '%';
-    $('sCount').textContent = r.vendidos + ' de ' + r.max + ' boletos vendidos';
+    $('sCount').textContent = T('{a} de {b} boletos vendidos', { a: r.vendidos, b: r.max });
   }
   $('sCopy').onclick = async () => {
     const t = $('sLink').textContent;
     try { await navigator.clipboard.writeText(t); } catch (e) {
       const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
     }
-    $('sCopy').textContent = '¡Copiado!'; setTimeout(() => ($('sCopy').textContent = 'Copiar link'), 1800);
+    $('sCopy').textContent = T('¡Copiado!'); setTimeout(() => ($('sCopy').textContent = T('Copiar link')), 1800);
   };
 })();
