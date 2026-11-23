@@ -18,7 +18,7 @@
 
 const INV = {
   HOJA: 'Invitación Rifa 2026',
-  HOJA_CONTACTOS: 'Contactos',
+  HOJAS_CONTACTOS: ['Contactos extranjeros', 'Contactos'], // la primera manda en país/idioma
   DE: 'contacto@orbarakmx.com',
   NOMBRE_REMITENTE: 'Or Barak',
   RESPONDER_A: 'contacto@orbarakmx.com',
@@ -38,17 +38,32 @@ const INV_COLS = ['Email', 'Nombre', 'Idioma', 'Enviar', 'Enviado', 'Notas'];
 
 function invitacionPrepararLista() {
   const ss = SpreadsheetApp.getActive();
-  const src = ss.getSheetByName(INV.HOJA_CONTACTOS);
-  if (!src) throw new Error('No existe la hoja "' + INV.HOJA_CONTACTOS + '"');
-  const datos = src.getDataRange().getValues();
-  const enc = datos[0].map(function (h) { return String(h).trim().toLowerCase(); });
-  const col = function (nombres) {
-    for (let i = 0; i < nombres.length; i++) { const k = enc.indexOf(nombres[i]); if (k >= 0) return k; }
-    return -1;
-  };
-  const cE = col(['email', 'correo']), cN = col(['nombre']), cA = col(['apellido']),
-        cT = col(['tel', 'telefono', 'teléfono', 'celular']), cT2 = col(['tel2']), cP = col(['país', 'pais', 'country']);
-  if (cE < 0) throw new Error('No encontré la columna Email en "Contactos"');
+  // Contactos de todas las hojas fuente. La primera hoja manda: si un correo
+  // está en "Contactos extranjeros" se usa su país (y por lo tanto su idioma).
+  const contactos = [];
+  INV.HOJAS_CONTACTOS.forEach(function (nombreHoja) {
+    const src = ss.getSheetByName(nombreHoja);
+    if (!src || src.getLastRow() < 2) return;
+    const datos = src.getDataRange().getValues();
+    const enc = datos[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    const col = function (nombres) {
+      for (let i = 0; i < nombres.length; i++) { const k = enc.indexOf(nombres[i]); if (k >= 0) return k; }
+      return -1;
+    };
+    const cE = col(['email', 'correo']), cN = col(['nombre']), cA = col(['apellido']),
+          cT = col(['tel', 'telefono', 'teléfono', 'celular']), cT2 = col(['tel2']), cP = col(['país', 'pais', 'country']);
+    if (cE < 0) return;
+    for (let i = 1; i < datos.length; i++) {
+      const r = datos[i];
+      contactos.push({
+        email: String(r[cE] || '').trim().toLowerCase(),
+        nombre: cN >= 0 ? String(r[cN] || '').trim() : '',
+        apellido: cA >= 0 ? String(r[cA] || '').trim() : '',
+        tel: (cT >= 0 ? String(r[cT] || '') : '') || (cT2 >= 0 ? String(r[cT2] || '') : ''),
+        pais: cP >= 0 ? r[cP] : ''
+      });
+    }
+  });
 
   // Lo que ya existe en la hoja de envío se respeta (Idioma, Enviar, Enviado, Notas)
   let sh = ss.getSheetByName(INV.HOJA);
@@ -67,31 +82,26 @@ function invitacionPrepararLista() {
   const filas = [];
   const cuenta = { es: 0, en: 0, he: 0, rifa: 0, excluidos: 0 };
 
-  for (let i = 1; i < datos.length; i++) {
-    const r = datos[i];
-    const email = String(r[cE] || '').trim().toLowerCase();
-    if (!invCorreoValido_(email) || vistos[email]) continue;
+  contactos.forEach(function (c) {
+    const email = c.email;
+    if (!invCorreoValido_(email) || vistos[email]) return;
     vistos[email] = true;
-    const nombre = cN >= 0 ? String(r[cN] || '').trim() : '';
-    const apellido = cA >= 0 ? String(r[cA] || '').trim() : '';
-    const tel = (cT >= 0 ? String(r[cT] || '') : '') || (cT2 >= 0 ? String(r[cT2] || '') : '');
-    const pais = cP >= 0 ? r[cP] : '';
     const p = previo[email];
 
-    let idioma = p && /^(es|en|he)$/.test(String(p[2]).trim()) ? String(p[2]).trim() : invIdioma_(email, pais, tel);
+    const idioma = p && /^(es|en|he)$/.test(String(p[2]).trim()) ? String(p[2]).trim() : invIdioma_(email, c.pais, c.tel);
     let enviar = p ? String(p[3]).trim() : 'SI';
-    let enviado = p ? p[4] : '';
+    const enviado = p ? p[4] : '';
     let notas = p ? String(p[5] || '') : '';
 
-    const completo = (nombre + ' ' + apellido).toLowerCase();
+    const completo = (c.nombre + ' ' + c.apellido).toLowerCase();
     if (INV.EXCLUIR_NOMBRES.some(function (x) { return completo.indexOf(x) >= 0; })) {
       enviar = 'NO'; notas = 'Excluido'; cuenta.excluidos++;
     } else if (yaEnRifa[email] && !enviado) {
       enviar = 'NO'; notas = 'Ya está en la rifa'; cuenta.rifa++;
     }
     if (enviar === 'SI' && !enviado) cuenta[idioma]++;
-    filas.push([email, nombre, idioma, enviar || 'SI', enviado, notas]);
-  }
+    filas.push([email, c.nombre, idioma, enviar || 'SI', enviado, notas]);
+  });
 
   sh.clearContents();
   sh.getRange(1, 1, 1, INV_COLS.length).setValues([INV_COLS]).setFontWeight('bold');
@@ -234,11 +244,15 @@ function invIdioma_(email, pais, tel) {
 }
 
 function invNombreSaludo_(nombre) {
-  let n = String(nombre || '').trim().replace(/\s+/g, ' ');
-  if (!n || /@|\d/.test(n)) return '';
-  if (!/\s(y|and|&)\s/i.test(n)) n = n.split(' ')[0];
-  return n.toLowerCase().split(' ').map(function (w) {
-    return /^(y|and|&)$/.test(w) ? w : w.replace(/(^|-)([a-záéíóúñü])/g, function (m, a, b) { return a + b.toUpperCase(); });
+  let w = String(nombre || '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean);
+  // Quita títulos; sin nombre usable → saludo genérico
+  while (w.length && /^(rab|rabbi|rav|sr|sra|dr|mr|mrs|ms)\.?$/i.test(w[0])) w.shift();
+  if (!w.length || /@|\d/.test(w.join(' ')) || /^(familia|family|mishpajat|flia)$/i.test(w[0]) ||
+      /\b(inc|llc|ltd|sa|corp)\b/i.test(w.join(' ')) || w[0].length < 2) return '';
+  let partes = [w[0]];
+  if (w.length >= 3 && /^(y|and|&|e)$/i.test(w[1])) partes = [w[0], w[1].toLowerCase(), w[2]];  // "Aaron y Linda"
+  return partes.map(function (x) {
+    return /^(y|and|&|e)$/.test(x) ? x : x.toLowerCase().replace(/(^|-)([a-záéíóúñü])/g, function (m, a, b) { return a + b.toUpperCase(); });
   }).join(' ');
 }
 
