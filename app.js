@@ -124,8 +124,21 @@
 
   const fVend = $('fVend'), vendHint = $('vendHint');
   let vendTimer, vendValid = true;
+  // El código del vendedor se recuerda 30 días desde la última vez que se abrió su link.
+  const REF_DIAS = 30;
   let refCode = cleanCode(params.get('v') || params.get('ref'));
-  if (refCode) store.set('rifa_ref', refCode); else refCode = cleanCode(store.get('rifa_ref'));
+  if (refCode) { store.set('rifa_ref', refCode); store.set('rifa_ref_t', String(Date.now())); }
+  else {
+    refCode = cleanCode(store.get('rifa_ref'));
+    const t = Number(store.get('rifa_ref_t') || 0);
+    if (refCode && !t) store.set('rifa_ref_t', String(Date.now()));              // links abiertos antes de este cambio
+    else if (refCode && Date.now() - t > REF_DIAS * 864e5) { refCode = ''; store.set('rifa_ref', ''); }
+  }
+  $('sellerStripX').addEventListener('click', () => {
+    store.set('rifa_ref', ''); store.set('rifa_ref_t', '');
+    refCode = ''; fVend.value = ''; validateVend();
+    $('sellerStrip').hidden = true;
+  });
   if (refCode) {
     fVend.value = refCode;
     validateVend();

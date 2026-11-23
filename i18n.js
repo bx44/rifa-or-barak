@@ -46,6 +46,7 @@
     // ---- nav / generales
     'Gran Rifa Or Barak 2026': ['Or Barak Grand Raffle 2026', 'ההגרלה הגדולה של אור ברק 2026'],
     'Estás comprando con': ['You are buying through', 'אתם רוכשים דרך'],
+    'Quitar': ['Remove', 'הסר'],
     'OR BARAK': ['OR BARAK', 'אור ברק'],
     'Premios': ['Prizes', 'פרסים'],
     'Cómo funciona': ['How it works', 'איך זה עובד'],

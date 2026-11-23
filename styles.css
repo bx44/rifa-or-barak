@@ -50,6 +50,8 @@ b,strong{font-weight:500}
 
 /* seller strip + nav */
 .seller-strip{background:linear-gradient(90deg,#2a1f12,#3b2b16,#2a1f12);color:var(--gold-hi);text-align:center;font-size:14px;letter-spacing:.06em;padding:9px 16px;border-bottom:1px solid var(--line)}
+.seller-x{margin-inline-start:12px;background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;font:inherit;font-size:12px;letter-spacing:.04em;padding:2px 10px;cursor:pointer}
+.seller-x:hover{color:var(--gold-hi);border-color:var(--gold)}
 .nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 28px;background:rgba(10,9,8,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .3s}
 .nav.scrolled{border-bottom-color:var(--line-soft)}
 .brand{color:var(--gold);text-decoration:none;letter-spacing:.5em;font-weight:400;font-size:15px}
