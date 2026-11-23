@@ -26,8 +26,8 @@ const INV = {
   WHATSAPP: '526572871690',
   RIFA_SHEET_ID: '1UKBkEhol-I4guu4ySuKRfulCOP707c0FykgcjM4XKqs', // para no invitar a quien ya compró
   CORREO_PRUEBA: 'jonathan@ben-hamu.com',
-  POR_BLOQUE: 60,          // correos por corrida (cada 10 min)
-  PAUSA_MS: 1500,
+  POR_BLOQUE: 12,          // correos por corrida (cada 10 min) — el servidor de orbarakmx.com
+  PAUSA_MS: 20000,         // rechaza ("Throttling quota exceeded") si se mandan muy rápido
   EXCLUIR_NOMBRES: ['yoel perets'] // nunca invitar (comparado contra nombre + apellido)
 };
 
@@ -155,6 +155,10 @@ function invitacionEnviarBloque() {
     const sh = SpreadsheetApp.getActive().getSheetByName(INV.HOJA);
     if (!sh || sh.getLastRow() < 2) { Logger.log('Primero corre invitacionPrepararLista'); invitacionDetener(); return; }
     const n = sh.getLastRow() - 1;
+    // Primero revisa rebotes: los que rebotaron por límite se vuelven a poner en cola.
+    // Si hubo rebotes por límite nuevos, esta corrida no manda nada (deja descansar al servidor).
+    const reb = invitacionRevisarRebotes();
+    if (reb.limite > 0) { Logger.log('Hubo ' + reb.limite + ' rebote(s) por límite; se espera a la siguiente corrida.'); return; }
     const data = sh.getRange(2, 1, n, INV_COLS.length).getValues();
     const yaEnRifa = invCorreosEnRifa_();
     const cupo = Math.min(INV.POR_BLOQUE, MailApp.getRemainingDailyQuota() - 5);
@@ -171,6 +175,7 @@ function invitacionEnviarBloque() {
         continue;
       }
       if (enviados >= cupo || Date.now() - inicio > 4.5 * 60 * 1000) { pendientes++; continue; }
+      if (enviados > 0) Utilities.sleep(INV.PAUSA_MS);
       const idioma = /^(es|en|he)$/.test(String(data[i][2]).trim()) ? String(data[i][2]).trim() : 'es';
       try {
         const t = invTemplate_(idioma, data[i][1]);
@@ -180,7 +185,7 @@ function invitacionEnviarBloque() {
       } catch (err) {
         sh.getRange(i + 2, 5, 1, 2).setValues([['ERROR', String(err && err.message || err).slice(0, 200)]]);
       }
-      Utilities.sleep(INV.PAUSA_MS);
+      SpreadsheetApp.flush();
     }
     Logger.log('Enviados en este bloque: ' + enviados + ' · pendientes: ' + pendientes);
     if (pendientes === 0) {
@@ -441,4 +446,43 @@ boton(urlVende, L.vendeCta, false) +
   ].join('\n');
 
   return { asunto: L.asunto, html: html, texto: texto };
+}
+
+/* ---------------------------- Rebotes ---------------------------- */
+
+// Lee los avisos de "El mensaje no se envió" de Gmail. Si el rechazo fue por
+// límite de envío, vuelve a poner a esa persona en cola (borra su "OK"). Si fue
+// otra cosa (correo inexistente, buzón lleno...), la marca REBOTÓ y no se reintenta.
+function invitacionRevisarRebotes() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(INV.HOJA);
+  const out = { limite: 0, otros: 0 };
+  if (!sh || sh.getLastRow() < 2) return out;
+  const etiqueta = GmailApp.getUserLabelByName('rifa-rebote-revisado') || GmailApp.createLabel('rifa-rebote-revisado');
+  const hilos = GmailApp.search('from:mailer-daemon newer_than:3d -label:rifa-rebote-revisado', 0, 100);
+  if (!hilos.length) return out;
+  const emails = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (r) { return String(r[0]).trim().toLowerCase(); });
+  hilos.forEach(function (h) {
+    const msgs = h.getMessages();
+    let destino = '', texto = '';
+    msgs.forEach(function (m) {
+      const de = String(m.getFrom()).toLowerCase();
+      if (de.indexOf('mailer-daemon') >= 0) texto += ' ' + m.getPlainBody();
+      else if (de.indexOf(INV.DE) >= 0 && !destino) destino = String(m.getTo()).replace(/.*</, '').replace(/>.*/, '').trim().toLowerCase();
+    });
+    const idx = destino ? emails.indexOf(destino) : -1;
+    if (idx >= 0) {
+      const fila = idx + 2;
+      if (/throttl|quota|rate limit|too many|limit exceeded/i.test(texto)) {
+        sh.getRange(fila, 5, 1, 2).setValues([['', 'Reintento (rebote por límite)']]);
+        out.limite++;
+      } else {
+        sh.getRange(fila, 5, 1, 2).setValues([['REBOTÓ', texto.replace(/\s+/g, ' ').slice(0, 180)]]);
+        out.otros++;
+      }
+    }
+    h.addLabel(etiqueta);
+  });
+  SpreadsheetApp.flush();
+  Logger.log('Rebotes revisados: ' + out.limite + ' por límite (se reintentan), ' + out.otros + ' definitivos.');
+  return out;
 }
