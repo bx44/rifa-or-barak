@@ -375,12 +375,12 @@ function invTemplate_(lang, nombre) {
 // Encabezado con escudo
 '<tr><td align="center" style="padding:34px 30px 8px;">' +
 '<img src="' + img + 'escudo-sm.jpg" width="72" height="79" alt="Or Barak" style="display:block;border:0;width:72px;height:auto;margin:0 auto 18px;">' +
-'<div style="font-size:12px;letter-spacing:' + (rtl ? '0' : '4px') + ';color:' + gold + ';font-weight:600;">' + L.eyebrow + '</div>' +
-'<div style="font-size:34px;line-height:40px;font-weight:300;color:' + text + ';padding-top:14px;letter-spacing:' + (rtl ? '0' : '1px') + ';">' + L.titulo1 + '<br><span style="color:' + goldHi + ';font-weight:500;">' + L.titulo2 + '</span></div>' +
+'<div style="font-size:12px;letter-spacing:' + (rtl ? '0' : '3px') + ';color:' + gold + ';font-weight:600;">' + L.eyebrow + '</div>' +
+'<div style="font-size:30px;line-height:36px;font-weight:300;color:' + text + ';padding-top:14px;letter-spacing:' + (rtl ? '0' : '1px') + ';">' + L.titulo1 + '<br><span style="color:' + goldHi + ';font-weight:500;">' + L.titulo2 + '</span></div>' +
 '</td></tr>' +
 
 // Autos
-'<tr><td style="padding:22px 0 0;"><a href="' + url + '" target="_blank"><img src="' + img + 'autos.jpg" width="600" alt="Mazda 2" style="display:block;border:0;width:100%;max-width:600px;height:auto;"></a></td></tr>' +
+'<tr><td style="padding:18px 0 0;"><a href="' + url + '" target="_blank"><img src="' + img + 'autos.jpg" width="600" alt="Mazda 2" style="display:block;border:0;width:100%;max-width:600px;height:auto;"></a></td></tr>' +
 
 // Premios
 '<tr><td style="padding:0 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="' + dir + '"><tr>' +
