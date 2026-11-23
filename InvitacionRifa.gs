@@ -142,6 +142,18 @@ function invitacionIniciarEnvio() {
   invitacionEnviarBloque();
 }
 
+// Igual que invitacionIniciarEnvio, pero no manda nada durante los próximos
+// `minutos` (para dejar descansar al servidor después de un rechazo por límite).
+function invitacionReanudarEn30Min() { invitacionReanudarEn_(30); }
+function invitacionReanudarEn_(minutos) {
+  invRevisarAlias_();
+  invitacionDetener();
+  PropertiesService.getScriptProperties().setProperty('INV_NO_ANTES', String(Date.now() + minutos * 60000));
+  ScriptApp.newTrigger('invitacionEnviarBloque').timeBased().everyMinutes(10).create();
+  Logger.log('El envío se reanuda solo a partir de las ' +
+    Utilities.formatDate(new Date(Date.now() + minutos * 60000), 'America/Mexico_City', 'HH:mm'));
+}
+
 function invitacionDetener() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'invitacionEnviarBloque') ScriptApp.deleteTrigger(t);
@@ -149,6 +161,8 @@ function invitacionDetener() {
 }
 
 function invitacionEnviarBloque() {
+  const noAntes = Number(PropertiesService.getScriptProperties().getProperty('INV_NO_ANTES') || 0);
+  if (Date.now() < noAntes) return;
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) return;
   try {
