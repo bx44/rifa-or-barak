@@ -380,7 +380,7 @@ function invTemplate_(lang, nombre) {
 '</td></tr>' +
 
 // Autos
-'<tr><td style="padding:18px 0 0;"><a href="' + url + '" target="_blank"><img src="' + img + 'autos.jpg" width="600" alt="Mazda 2" style="display:block;border:0;width:100%;max-width:600px;height:auto;"></a></td></tr>' +
+'<tr><td style="padding:18px 0 0;"><a href="' + url + '" target="_blank"><img src="' + img + 'correo-autos.jpg" width="600" alt="Mazda 2" style="display:block;border:0;width:100%;max-width:600px;height:auto;"></a></td></tr>' +
 
 // Premios
 '<tr><td style="padding:0 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="' + dir + '"><tr>' +
