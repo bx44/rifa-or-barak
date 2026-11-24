@@ -204,7 +204,8 @@
       aNombre: $('fANombre').value.trim(),
       dedTipo: $('fDedTipo').value,
       dedTexto: $('fDedTexto').value.trim(),
-      web_hp: $('fHp').value
+      web_hp: $('fHp').value,
+      lang: (document.documentElement.lang || 'es').slice(0, 2)
     };
     const bad = [];
     if (data.nombre.length < 3) bad.push('fNombre');
