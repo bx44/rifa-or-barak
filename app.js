@@ -99,8 +99,16 @@
     })(t0);
   }
   let stats = null;
-  // La barra no se mide contra el total de boletos: avanza hacia la siguiente
-  // meta (25, 50, 75, 100, 150…), así siempre se ve el avance.
+  // La barra no se mide contra los 1000 boletos (se vería siempre vacía):
+  // se mide contra la siguiente meta, DESDE CERO.
+  //
+  // Antes se medía desde la meta anterior: con 51 boletos daba 37 %, porque
+  // apenas iba 1 de los 25 que van del 50 al 75. Dos cosas estaban mal.
+  // Una, que quien lo ve lee "51" y "meta 75" y espera ver dos terceras
+  // partes. Dos, y peor: la barra RETROCEDÍA al cruzar cada meta — a los 74
+  // boletos estaba casi llena y a los 76 se caía al 37 % otra vez. En una
+  // página de donadores eso hace ver que la campaña va para atrás justo
+  // cuando acaba de lograr algo.
   const METAS = [25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000];
   function renderStats(s) {
     stats = s;
@@ -108,11 +116,13 @@
     animateNumber($('cSold'), v);
     const meta = METAS.find((m) => m > v);
     if (meta) {
-      const prev = METAS[METAS.indexOf(meta) - 1] || 0;
-      // arranca en 35 % para que nunca se vea vacía
-      const pct = 35 + 65 * ((v - prev) / (meta - prev));
+      // Un mínimo chico para que con pocos boletos se vea una rayita y no
+      // una barra vacía. Chico a propósito: 4 % se lee como "va empezando",
+      // que es la verdad.
+      const pct = v ? Math.max(4, 100 * v / meta) : 0;
       $('cBar').style.width = Math.min(100, pct) + '%';
-      $('cLeft').textContent = T('Próxima meta: {n} boletos', { n: fmt(meta) });
+      $('cLeft').textContent = T('{a} de {b} boletos — próxima meta',
+                                 { a: fmt(v), b: fmt(meta) });
     } else {
       $('cBar').style.width = '100%';
       $('cLeft').textContent = T('¡Seguimos sumando!');

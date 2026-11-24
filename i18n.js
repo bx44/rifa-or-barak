@@ -169,6 +169,7 @@
     'Cada boleto:': ['Each ticket:', 'כל כרטיס:'],
     ', con opción a meses.': [', installments available.', ', אפשר בתשלומים.'],
     'Próxima meta: {n} boletos': ['Next goal: {n} tickets', 'היעד הבא: {n} כרטיסים'],
+    '{a} de {b} boletos — próxima meta': ['{a} of {b} tickets — next goal', '{a} מתוך {b} כרטיסים — היעד הבא'],
     '¡Seguimos sumando!': ['We keep going!', 'ממשיכים להתקדם!'],
     'Máximo': ['Up to', 'עד'],
     'boletos por vendedor.': ['tickets per seller.', 'כרטיסים לכל מוכר.'],
