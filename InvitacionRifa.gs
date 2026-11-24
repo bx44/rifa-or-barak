@@ -172,6 +172,7 @@ function invitacionEnviarBloque() {
     const n = sh.getLastRow() - 1;
     // Primero revisa rebotes: los que rebotaron por límite se vuelven a poner en cola.
     // Si hubo rebotes por límite nuevos, esta corrida no manda nada (deja descansar al servidor).
+    try { invActualizarClics_(); } catch (e) { Logger.log('Clics: ' + e.message); }
     const reb = invitacionRevisarRebotes();
     if (reb.limite > 0) { Logger.log('Hubo ' + reb.limite + ' rebote(s) por límite; se espera a la siguiente corrida.'); return; }
     const data = sh.getRange(2, 1, n, INV_COLS.length).getValues();
@@ -414,44 +415,48 @@ function invTemplate_(lang, nombre, email) {
   return { asunto: L.asunto, html: html, texto: texto };
 }
 
-/* ---------------------------- Clics (web app) ---------------------------- */
-// La página de la rifa llama a esta web app con ?c=<código> cuando alguien llega
-// desde el correo. Se anota en la columna "Clic en el link": primera vez y cuántas.
-function doGet(e) {
-  const c = String((e && e.parameter && e.parameter.c) || '').replace(/[^0-9a-f]/g, '').slice(0, 12);
-  if (c) {
-    const lock = LockService.getScriptLock();
-    if (lock.tryLock(10000)) {
-      try {
-        const sh = SpreadsheetApp.getActive().getSheetByName(INV.HOJA);
-        if (sh && sh.getLastRow() > 1) {
-          const emails = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
-          for (let i = 0; i < emails.length; i++) {
-            if (emails[i][0] && invToken_(emails[i][0]) === c) {
-              const cel = sh.getRange(i + 2, 7);
-              const prev = String(cel.getValue() || '');
-              const m = prev.match(/\((\d+)\)$/);
-              const veces = m ? Number(m[1]) + 1 : 1;
-              const primera = prev ? prev.replace(/\s*\(\d+\)$/, '') :
-                Utilities.formatDate(new Date(), 'America/Mexico_City', 'yyyy-MM-dd HH:mm');
-              cel.setValue(primera + ' (' + veces + ')');
-              break;
-            }
-          }
-        }
-      } finally { lock.releaseLock(); }
-    }
-  }
-  return ContentService.createTextOutput('ok');
+/* ---------------------------- Clics ---------------------------- */
+// Cuando alguien abre el link del correo, la página de la rifa registra un evento
+// "correo" con su código (c=) en la hoja WEB_EVENTOS de la rifa. Aquí se cruzan
+// esos códigos con la lista y se llena la columna "Clic en el link":
+// fecha del primer clic y cuántas veces entró, p. ej. "2026-11-24 18:05 (2)".
+function invActualizarClics_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(INV.HOJA);
+  if (!sh || sh.getLastRow() < 2) return { enviados: 0, clics: 0 };
+  let ev = [];
+  try {
+    const h = SpreadsheetApp.openById(INV.RIFA_SHEET_ID).getSheetByName('WEB_EVENTOS');
+    if (h && h.getLastRow() > 1) ev = h.getRange(2, 1, h.getLastRow() - 1, 5).getValues();
+  } catch (e) { Logger.log('No pude leer WEB_EVENTOS: ' + e.message); }
+  const porCodigo = {};
+  ev.forEach(function (r) {
+    if (String(r[2]) !== 'correo' || !r[4]) return;
+    const c = String(r[4]);
+    const f = r[0] instanceof Date ? r[0] : new Date(r[0]);
+    if (!porCodigo[c]) porCodigo[c] = { primera: f, veces: 0 };
+    porCodigo[c].veces++;
+    if (f < porCodigo[c].primera) porCodigo[c].primera = f;
+  });
+  const n = sh.getLastRow() - 1;
+  const v = sh.getRange(2, 1, n, INV_COLS.length).getValues();
+  let enviados = 0, clics = 0;
+  const col = v.map(function (r) {
+    if (/^OK/.test(String(r[4]))) enviados++;
+    const x = r[0] ? porCodigo[invToken_(r[0])] : null;
+    if (!x) return [''];
+    clics++;
+    return [Utilities.formatDate(x.primera, 'America/Mexico_City', 'yyyy-MM-dd HH:mm') + ' (' + x.veces + ')'];
+  });
+  sh.getRange(2, 7, n, 1).setValues(col);
+  return { enviados: enviados, clics: clics };
 }
 
-// Cuántos le dieron clic (para verlo rápido en el registro de ejecución).
+// Cuántos le dieron clic al link (también actualiza la columna).
 function invitacionContarClics() {
-  const sh = SpreadsheetApp.getActive().getSheetByName(INV.HOJA);
-  const v = sh.getRange(2, 1, sh.getLastRow() - 1, INV_COLS.length).getValues();
-  const enviados = v.filter(function (r) { return /^OK/.test(String(r[4])); }).length;
-  const clics = v.filter(function (r) { return r[6]; }).length;
-  Logger.log('Enviados: ' + enviados + ' · Personas que dieron clic: ' + clics);
+  const r = invActualizarClics_();
+  const msg = 'Enviados: ' + r.enviados + ' · Personas que abrieron el link: ' + r.clics;
+  Logger.log(msg);
+  try { SpreadsheetApp.getActive().toast(msg, 'Invitación rifa', 10); } catch (e) {}
 }
 
 /* ---------------------------- Rebotes ---------------------------- */
