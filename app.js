@@ -71,9 +71,9 @@
   // Clic desde el correo de invitación: se anota quién llegó (una vez por sesión)
   (function () {
     const c = (params.get('c') || '').replace(/[^0-9a-f]/g, '').slice(0, 12);
-    if (!c || !C.CLICK_URL) return;
+    if (!c || !HAS_API) return;
     try { if (sessionStorage.getItem('rifa_c_' + c)) return; sessionStorage.setItem('rifa_c_' + c, '1'); } catch (x) {}
-    fetch(C.CLICK_URL + '?c=' + c, { mode: 'no-cors', keepalive: true }).catch(() => {});
+    fetch(C.API_URL + '?' + new URLSearchParams({ accion: 'web', op: 'evento', e: 'correo', c: c }).toString(), { keepalive: true }).catch(() => {});
   })();
   document.getElementById('buyForm').addEventListener('focusin', () => evento('inicio'), { once: true });
 
