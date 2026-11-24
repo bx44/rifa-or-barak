@@ -6,6 +6,9 @@ window.RIFA = {
   // La página registra la venta en tus hojas y manda al pago del Worker (saldo exacto, Stripe).
   API_URL: 'https://script.google.com/macros/s/AKfycbwWEQPMKoBdrx0dzhpzNZ2UAOTTS-ga3-jCmE8n8tQzQiXJrPmnF3zq-TtjjtEqCMNhJA/exec',
 
+  // Web app de "Mails Masivos": cuenta los clics que llegan desde el correo (?c=...)
+  CLICK_URL: 'https://script.google.com/macros/s/AKfycbzG2wbHF1hS-TeTrKUG8AQA9iyqSrP5UvoAiiXPFn7xLL2ZeGklDa-dQCK7TZn7UqDM/exec',
+
   // Payment Link de Stripe (respaldo cuando no hay API_URL)
   STRIPE_PAYMENT_LINK: 'https://buy.stripe.com/9B600kahi5kH9bJ4G12Fa0i',
 
