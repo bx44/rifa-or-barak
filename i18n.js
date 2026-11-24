@@ -165,6 +165,10 @@
 
     // ---- bases
     'boletos disponibles.': ['tickets available.', 'כרטיסים זמינים.'],
+    'Cada boleto:': ['Each ticket:', 'כל כרטיס:'],
+    ', con opción a meses.': [', installments available.', ', אפשר בתשלומים.'],
+    'Próxima meta: {n} boletos': ['Next goal: {n} tickets', 'היעד הבא: {n} כרטיסים'],
+    '¡Seguimos sumando!': ['We keep going!', 'ממשיכים להתקדם!'],
     'Máximo': ['Up to', 'עד'],
     'boletos por vendedor.': ['tickets per seller.', 'כרטיסים לכל מוכר.'],
     'El boleto ganador deberá estar': ['The winning ticket must be', 'הכרטיס הזוכה חייב להיות'],
@@ -398,7 +402,7 @@
     var md = document.querySelector('meta[name=description]');
     if (md) {
       var d = norm(md.content);
-      var desc = { en: 'Or Barak Grand Raffle 2026: a Mazda 2 for the buyer and another Mazda 2 for whoever sold the winning ticket. 1,000 tickets at $6,000 MXN. Draw on December 10, 2026.', he: 'ההגרלה הגדולה של אור ברק 2026: מאזדה 2 לקונה ועוד מאזדה 2 למי שמכר את הכרטיס הזוכה. 1,000 כרטיסים ב־6,000 פסו. ההגרלה ב־10 בדצמבר 2026.' };
+      var desc = { en: 'Or Barak Grand Raffle 2026: a Mazda 2 for the buyer and another Mazda 2 for whoever sold the winning ticket. Tickets at $6,000 MXN. Draw on December 10, 2026.', he: 'ההגרלה הגדולה של אור ברק 2026: מאזדה 2 לקונה ועוד מאזדה 2 למי שמכר את הכרטיס הזוכה. כרטיסים ב־6,000 פסו. ההגרלה ב־10 בדצמבר 2026.' };
       if (d.indexOf('Gran Rifa') === 0) md.content = desc[LANG];
     }
   }

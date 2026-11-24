@@ -33,7 +33,6 @@
   document.querySelectorAll('.js-mail').forEach((s) => (s.textContent = C.CORREO_COMPROBANTES));
   if (C.BASES_URL) { $('basesLink').href = C.BASES_URL; $('basesLink').hidden = false; }
   $('permiso').textContent = C.PERMISO_SEGOB ? T('Permiso SEGOB: {p}', { p: C.PERMISO_SEGOB }) : '';
-  $('cTotal').textContent = fmt(C.TOTAL_BOLETOS);
 
   /* ---------- reintenta imágenes que fallan (red móvil inestable) ---------- */
   document.querySelectorAll('img').forEach((img) => {
@@ -93,22 +92,29 @@
     })(t0);
   }
   let stats = null;
+  // La barra no se mide contra el total de boletos: avanza hacia la siguiente
+  // meta (25, 50, 75, 100, 150…), así siempre se ve el avance.
+  const METAS = [25, 50, 75, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000];
   function renderStats(s) {
     stats = s;
-    const total = s.total || C.TOTAL_BOLETOS;
-    animateNumber($('cSold'), s.vendidos);
-    $('cBar').style.width = Math.min(100, (s.vendidos / total) * 100) + '%';
-    const left = Math.max(0, total - s.vendidos);
-    $('cLeft').textContent = left === 0 ? T('Boletos agotados.') : T('Quedan {a} boletos de {b}.', { a: fmt(left), b: fmt(total) });
+    const v = Number(s.vendidos) || 0;
+    animateNumber($('cSold'), v);
+    const meta = METAS.find((m) => m > v);
+    if (meta) {
+      const prev = METAS[METAS.indexOf(meta) - 1] || 0;
+      // arranca en 35 % para que nunca se vea vacía
+      const pct = 35 + 65 * ((v - prev) / (meta - prev));
+      $('cBar').style.width = Math.min(100, pct) + '%';
+      $('cLeft').textContent = T('Próxima meta: {n} boletos', { n: fmt(meta) });
+    } else {
+      $('cBar').style.width = '100%';
+      $('cLeft').textContent = T('¡Seguimos sumando!');
+    }
   }
   async function loadStats() {
-    if (!HAS_API) {
-      $('cSold').textContent = '0';
-      $('cLeft').textContent = T('{n} boletos disponibles.', { n: fmt(C.TOTAL_BOLETOS) });
-      return;
-    }
+    if (!HAS_API) { $('cSold').textContent = '0'; $('cLeft').textContent = ''; return; }
     try { const s = await apiGet('stats'); if (s.ok) renderStats(s); }
-    catch (e) { $('cLeft').textContent = T('{n} boletos en total.', { n: fmt(C.TOTAL_BOLETOS) }); }
+    catch (e) { $('cLeft').textContent = ''; }
   }
   loadStats();
   if (HAS_API) setInterval(loadStats, 60000);

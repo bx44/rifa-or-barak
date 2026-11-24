@@ -84,17 +84,17 @@ b,strong{font-weight:500}
 /* counter */
 .counter{background:linear-gradient(180deg,var(--bg2),var(--bg));border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);padding:64px 24px}
 .counter-grid{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr;gap:56px;align-items:center}
-.big{font-size:clamp(64px,9vw,112px);line-height:1;margin:0 0 22px;font-weight:300;letter-spacing:.02em;color:#fff}
+.big{font-size:clamp(88px,13vw,150px);line-height:1;margin:0 0 22px;font-weight:300;letter-spacing:.02em;color:var(--gold-hi);font-variant-numeric:tabular-nums;text-shadow:0 0 40px rgba(242,214,160,.25)}
 .big small{font-size:.32em;color:var(--muted);letter-spacing:.1em}
-.bar{height:6px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;position:relative}
+.bar{height:8px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden;position:relative}
 .bar-fill{height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,var(--gold-lo),var(--gold),var(--gold-hi));box-shadow:0 0 18px rgba(242,214,160,.6);transition:width 1.6s var(--ease)}
 .counter-main .muted{margin:14px 0 0;letter-spacing:.04em}
 .counter-side{text-align:center;border-left:1px solid var(--line-soft);padding-left:48px}
-.date{font-size:clamp(26px,3vw,36px);letter-spacing:.16em;margin:0;color:#fff;font-weight:400}
-.year{letter-spacing:.4em;color:var(--gold);margin:4px 0 22px}
+.date{font-size:clamp(15px,1.6vw,18px);letter-spacing:.22em;margin:0;color:var(--text,#f4efe6);font-weight:400}
+.year{letter-spacing:.4em;color:var(--gold);margin:4px 0 18px;font-size:13px}
 .countdown{display:flex;justify-content:center;gap:12px}
 .countdown div{min-width:68px;padding:12px 6px;border:1px solid var(--line-soft);border-radius:10px;background:rgba(255,255,255,.02)}
-.countdown b{display:block;font-size:28px;font-weight:400;color:var(--gold-hi);font-variant-numeric:tabular-nums;line-height:1.1}
+.countdown b{display:block;font-size:24px;font-weight:400;color:var(--gold-hi);font-variant-numeric:tabular-nums;line-height:1.1}
 .countdown span{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 
 /* steps */
