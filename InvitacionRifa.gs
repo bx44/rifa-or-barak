@@ -320,12 +320,12 @@ const INV_TXT = {
     hola: function (n) { return n ? 'Hi ' + n + ',' : 'Hi,'; },
     cuerpo: [
       "I want to share something that's been on my mind day and night.",
-      "This year, to keep Or Barak going, we're holding a raffle: two Mazda 2 cars, with G-d's help. One for whoever buys the winning ticket, and one for whoever sold it. The draw is on December 10.",
+      "This year, to keep Or Barak going, we're holding a raffle: two Mazda 2 cars, Bzh. One for the buyer of the winning ticket, and one for whoever sold it. The draw is on December 10.",
       "Today I opened the raffle spreadsheet. There are {dias} days left, and we're far behind where we need to be.",
       "The truth is, I felt like giving up.",
       "But I can't.",
-      "Every morning, boys walk into Or Barak who had already been turned away by other schools. They came in convinced they weren't cut out for learning, and today they're moving forward. If this doesn't work out, they're the ones who lose.",
-      "Many of you have stood with us for years, and it has meant the world to us. I know you want to see us make it.",
+      "Every morning, boys who lost the opportunity in other schools walk into Or Barak and are given a chance. They came in convinced they weren't cut out for learning, and today they're moving forward. If this doesn't work out, they're the ones who lose.",
+      "Many of you have stood with us for years, and it has meant the world to us. I know you want to see our success.",
       "And honestly, I know our people. I know they won't leave us on our own.",
       "So instead of giving up, I'm writing to you.",
       "A ticket is $6,000 MXN, and you can pay in installments. I'm asking you to get yours today:<br>{link}",
@@ -346,22 +346,22 @@ const INV_TXT = {
     ]
   },
   he: {
-    asunto: 'אני פונה אליך בפתיחות',
+    asunto: 'אני צריך עזרה',
     hola: function (n) { return n ? 'שלום ' + n + ',' : 'שלום,'; },
     cuerpo: [
       'אני רוצה לשתף אותך במשהו שלא יוצא לי מהראש בימים האלה.',
       'השנה, כדי להחזיק את אור ברק, אנחנו עורכים הגרלה: שתי מכוניות מאזדה 2, בעזרת ה\'. אחת למי שקונה את הכרטיס הזוכה, ואחת למי שמכר אותו. ההגרלה תתקיים ב־10 בדצמבר.',
-      'היום פתחתי את הגיליון של ההגרלה. נשארו {dias} ימים, ואנחנו רחוקים מאוד מהמקום שבו אנחנו צריכים להיות.',
+      'היום נכנסתי לאתר ההגרלה. נשארו {dias} ימים, ואנחנו רחוקים מאוד מהמקום שבו אנחנו צריכים להיות.',
       'אגיד לך את האמת: התחשק לי להרים ידיים.',
       'אבל אני לא יכול.',
-      'כל בוקר נכנסים לאור ברק נערים שבתי ספר אחרים כבר סגרו בפניהם את הדלת. הם הגיעו משוכנעים שהם לא מסוגלים ללמוד, והיום הם מתקדמים. אם זה לא יצליח, מי שיפסידו הם הם.',
+      'כל בוקר נכנסים לאור ברק נערים שבתי ספר אחרים סגרו להם את הדלת. הם הגיעו משוכנעים שהם לא מסוגלים ללמוד, והיום הם מתקדמים. אם זה לא יצליח, מי יפסיד? הם.',
       'רבים מכם עומדים לצידנו כבר שנים, וזה חשוב לנו מאוד. אני יודע שאתם רוצים לראות אותנו מצליחים.',
       'והאמת, אני מכיר את האנשים שלנו. אני יודע שהם לא ישאירו אותנו לבד.',
       'אז במקום להרים ידיים, אני כותב לך.',
       'כרטיס עולה 6,000 פסו מקסיקני, ואפשר לשלם בתשלומים. אני מבקש ממך לקנות את הכרטיס שלך היום:<br>{link}',
       'אם נוח לך יותר לשלם בהעברה בנקאית, או שיש לך שאלה, פשוט תענה למייל הזה או {wa}. אני קורא הכול בעצמי.',
-      'ואם השנה זה לא מתאפשר, תעביר את המייל הזה למישהו שכן יכול. כל כרטיס חשוב.',
-      'אני חוזר לטלפונים. נשארו {dias} ימים, ואני מתכוון לנצל כל אחד מהם.'
+      'ואם השנה אתה לא יכול, תעביר את המייל הזה למישהו שכן יכול. כל כרטיס חשוב.',
+      'אני חוזר לטלפונים. נשארו {dias} ימים, ואני מתכוון לנצל אותם.'
     ],
     waTexto: 'תכתוב לי בוואטסאפ',
     waMsg: 'שלום יהונתן, אני כותב בעקבות המייל שלך על ההגרלה של אור ברק.',
