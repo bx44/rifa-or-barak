@@ -1,7 +1,7 @@
 /* ============================================================
  *  INVITACIÓN A LA GRAN RIFA OR BARAK 2026 — correo masivo
  * ============================================================
- *  Sale desde contacto@orbarakmx.com (alias "Enviar como" de Gmail).
+ *  Sale desde la cuenta personal de Jonathan (jonathan@ben-hamu.com), como correo normal.
  *  Español por default; inglés o hebreo según el país / correo / teléfono.
  *
  *  CÓMO SE USA (en este orden):
@@ -288,15 +288,16 @@ const INV_TXT = {
     asunto: 'Te voy a ser honesto',
     hola: function (n) { return n ? 'Hola ' + n + ',' : 'Hola,'; },
     cuerpo: [
-      'Hoy abrí la hoja de la rifa. Faltan {dias} días para el sorteo y vamos muy por debajo de donde necesitamos estar.',
+      'Quiero contarte algo que me tiene muy metido estos días.',
+      'Este año, para sacar adelante a Or Barak, estamos haciendo una rifa: 2 Mazda 2, bzh. Uno para quien compra el boleto ganador y otro para quien se lo vendió. El sorteo es el 10 de diciembre.',
+      'Hoy abrí la hoja de la rifa. Faltan {dias} días y vamos muy por debajo de donde necesitamos estar.',
       'Te voy a ser honesto: me dieron ganas de rendirme.',
       'Pero no puedo.',
       'Cada mañana entran a Or Barak muchachos a los que otras escuelas ya les habían cerrado la puerta. Llegaron convencidos de que no servían para estudiar, y hoy están saliendo adelante. Si esto no sale, los que pierden son ellos.',
-      'Además, muchos de ustedes nos apoyaron el año pasado, y eso significó muchísimo para nosotros. Sé que quieren vernos llegar.',
+      'Además, muchos de ustedes nos han apoyado durante años, y eso ha significado muchísimo para nosotros. Sé que quieren vernos llegar.',
       'Y la verdad, conozco a nuestra gente. Sé que no nos va a dejar solos.',
       'Así que en lugar de rendirme, te escribo.',
-      'Este año rifamos 2 Mazda 2, bzh. Uno para quien compra el boleto ganador y otro para quien se lo vendió. El boleto cuesta $6,000 y se puede pagar a meses.',
-      'Te pido que compres el tuyo hoy:<br>{link}',
+      'El boleto cuesta $6,000 y se puede pagar a meses. Te pido que compres el tuyo hoy:<br>{link}',
       'Si prefieres pagar por transferencia o tienes cualquier duda, contéstame este correo o {wa}. Lo veo yo personalmente.',
       'Y si este año no puedes, reenvíale este correo a alguien que sí pueda. Cada boleto cuenta.',
       'Me regreso a mis llamadas. Quedan {dias} días y pienso usarlos todos.'
@@ -314,18 +315,19 @@ const INV_TXT = {
     ]
   },
   en: {
-    asunto: "I'll be honest with you",
+    asunto: 'I felt like giving up',
     hola: function (n) { return n ? 'Hi ' + n + ',' : 'Hi,'; },
     cuerpo: [
-      "Today I opened the raffle spreadsheet. The draw is {dias} days away, and we're far behind where we need to be.",
-      "I'll be honest with you: I felt like giving up.",
+      "I want to share something that's been on my mind day and night.",
+      "This year, to keep Or Barak going, we're holding a raffle: two Mazda 2 cars, with G-d's help. One for whoever buys the winning ticket, and one for whoever sold it. The draw is on December 10.",
+      "Today I opened the raffle spreadsheet. There are {dias} days left, and we're far behind where we need to be.",
+      "The truth is, I felt like giving up.",
       "But I can't.",
       "Every morning, boys walk into Or Barak who had already been turned away by other schools. They came in convinced they weren't cut out for learning, and today they're moving forward. If this doesn't work out, they're the ones who lose.",
-      "Many of you supported us last year, and it meant the world to us. I know you want to see us make it.",
+      "Many of you have stood with us for years, and it has meant the world to us. I know you want to see us make it.",
       "And honestly, I know our people. I know they won't leave us on our own.",
       "So instead of giving up, I'm writing to you.",
-      "This year, with G-d's help, we're raffling two Mazda 2 cars. One for whoever buys the winning ticket, and one for whoever sold it. A ticket is $6,000 MXN, and you can pay in installments.",
-      "I'm asking you to get yours today:<br>{link}",
+      "A ticket is $6,000 MXN, and you can pay in installments. I'm asking you to get yours today:<br>{link}",
       "If you'd rather pay by bank transfer, or you have any question, just reply to this email or {wa}. I read them myself.",
       "And if this year you can't, please forward this email to someone who can. Every ticket counts.",
       "I'm going back to my calls. There are {dias} days left, and I plan to use every one of them."
@@ -343,18 +345,19 @@ const INV_TXT = {
     ]
   },
   he: {
-    asunto: 'אני אהיה כן איתך',
+    asunto: 'אני פונה אליך בפתיחות',
     hola: function (n) { return n ? 'שלום ' + n + ',' : 'שלום,'; },
     cuerpo: [
-      'היום פתחתי את הגיליון של ההגרלה. נשארו {dias} ימים עד ההגרלה, ואנחנו רחוקים מאוד מהמקום שבו אנחנו צריכים להיות.',
-      'אני אהיה כן איתך: התחשק לי להרים ידיים.',
+      'אני רוצה לשתף אותך במשהו שלא יוצא לי מהראש בימים האלה.',
+      'השנה, כדי להחזיק את אור ברק, אנחנו עורכים הגרלה: שתי מכוניות מאזדה 2, בעזרת ה\'. אחת למי שקונה את הכרטיס הזוכה, ואחת למי שמכר אותו. ההגרלה תתקיים ב־10 בדצמבר.',
+      'היום פתחתי את הגיליון של ההגרלה. נשארו {dias} ימים, ואנחנו רחוקים מאוד מהמקום שבו אנחנו צריכים להיות.',
+      'אגיד לך את האמת: התחשק לי להרים ידיים.',
       'אבל אני לא יכול.',
       'כל בוקר נכנסים לאור ברק נערים שבתי ספר אחרים כבר סגרו בפניהם את הדלת. הם הגיעו משוכנעים שהם לא מסוגלים ללמוד, והיום הם מתקדמים. אם זה לא יצליח, מי שיפסידו הם הם.',
-      'רבים מכם תמכו בנו בשנה שעברה, וזה היה חשוב לנו מאוד. אני יודע שאתם רוצים לראות אותנו מצליחים.',
+      'רבים מכם עומדים לצידנו כבר שנים, וזה חשוב לנו מאוד. אני יודע שאתם רוצים לראות אותנו מצליחים.',
       'והאמת, אני מכיר את האנשים שלנו. אני יודע שהם לא ישאירו אותנו לבד.',
       'אז במקום להרים ידיים, אני כותב לך.',
-      'השנה אנחנו מגרילים, בעזרת ה\', שתי מכוניות מאזדה 2. אחת למי שקונה את הכרטיס הזוכה, ואחת למי שמכר אותו. כרטיס עולה 6,000 פסו מקסיקני, ואפשר לשלם בתשלומים.',
-      'אני מבקש ממך לקנות את הכרטיס שלך היום:<br>{link}',
+      'כרטיס עולה 6,000 פסו מקסיקני, ואפשר לשלם בתשלומים. אני מבקש ממך לקנות את הכרטיס שלך היום:<br>{link}',
       'אם נוח לך יותר לשלם בהעברה בנקאית, או שיש לך שאלה, פשוט תענה למייל הזה או {wa}. אני קורא הכול בעצמי.',
       'ואם השנה זה לא מתאפשר, תעביר את המייל הזה למישהו שכן יכול. כל כרטיס חשוב.',
       'אני חוזר לטלפונים. נשארו {dias} ימים, ואני מתכוון לנצל כל אחד מהם.'
