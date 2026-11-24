@@ -19,20 +19,20 @@
 const INV = {
   HOJA: 'Invitación Rifa 2026',
   HOJAS_CONTACTOS: ['Contactos extranjeros', 'Contactos'], // la primera manda en país/idioma
-  DE: 'contacto@orbarakmx.com',
-  NOMBRE_REMITENTE: 'Or Barak',
-  RESPONDER_A: 'contacto@orbarakmx.com',
+  DE: '',                  // vacío = sale de la cuenta personal (jonathan@ben-hamu.com), sin alias
+  NOMBRE_REMITENTE: 'Jonathan Ben-Hamu',
   SITIO: 'https://rifa.orbarakmx.com/',
-  WHATSAPP: '526572871690',
+  WHATSAPP: '525539896174',
+  SORTEO_ISO: '2026-12-10T20:00:00-06:00',
   RIFA_SHEET_ID: '1UKBkEhol-I4guu4ySuKRfulCOP707c0FykgcjM4XKqs', // para no invitar a quien ya compró
   CORREO_PRUEBA: 'jonathan@ben-hamu.com',
-  POR_BLOQUE: 12,          // correos por corrida (cada 10 min) — el servidor de orbarakmx.com
-  PAUSA_MS: 20000,         // rechaza ("Throttling quota exceeded") si se mandan muy rápido
+  POR_BLOQUE: 40,          // correos por corrida (cada 10 min)
+  PAUSA_MS: 5000,
   EXCLUIR_NOMBRES: ['yoel perets'] // nunca invitar (comparado contra nombre + apellido)
 };
 
 // Columnas de la hoja de envío
-const INV_COLS = ['Email', 'Nombre', 'Idioma', 'Enviar', 'Enviado', 'Notas'];
+const INV_COLS = ['Email', 'Nombre', 'Idioma', 'Enviar', 'Enviado', 'Notas', 'Clic en el link'];
 
 /* ---------------------------- 1. Lista ---------------------------- */
 
@@ -100,7 +100,7 @@ function invitacionPrepararLista() {
       enviar = 'NO'; notas = 'Ya está en la rifa'; cuenta.rifa++;
     }
     if (enviar === 'SI' && !enviado) cuenta[idioma]++;
-    filas.push([email, c.nombre, idioma, enviar || 'SI', enviado, notas]);
+    filas.push([email, c.nombre, idioma, enviar || 'SI', enviado, notas, p ? p[6] : '']);
   });
 
   sh.clearContents();
@@ -128,7 +128,8 @@ function invitacionPrueba() {
   invRevisarAlias_();
   ['es', 'en', 'he'].forEach(function (l) {
     const t = invTemplate_(l, 'Jonathan');
-    invEnviar_(INV.CORREO_PRUEBA, '[PRUEBA ' + l.toUpperCase() + '] ' + t.asunto, t);
+    const t2 = invTemplate_(l, 'Jonathan', INV.CORREO_PRUEBA);
+    invEnviar_(INV.CORREO_PRUEBA, '[PRUEBA ' + l.toUpperCase() + '] ' + t2.asunto, t2);
   });
   Logger.log('Se mandaron las 3 pruebas a ' + INV.CORREO_PRUEBA + ' desde ' + INV.DE);
 }
@@ -192,7 +193,7 @@ function invitacionEnviarBloque() {
       if (enviados > 0) Utilities.sleep(INV.PAUSA_MS);
       const idioma = /^(es|en|he)$/.test(String(data[i][2]).trim()) ? String(data[i][2]).trim() : 'es';
       try {
-        const t = invTemplate_(idioma, data[i][1]);
+        const t = invTemplate_(idioma, data[i][1], email);
         invEnviar_(email, t.asunto, t);
         sh.getRange(i + 2, 5).setValue('OK ' + Utilities.formatDate(new Date(), 'America/Mexico_City', 'yyyy-MM-dd HH:mm'));
         enviados++;
@@ -214,6 +215,7 @@ function invitacionEnviarBloque() {
 /* ---------------------------- Utilidades ---------------------------- */
 
 function invRevisarAlias_() {
+  if (!INV.DE) return;
   const alias = GmailApp.getAliases().map(function (a) { return a.toLowerCase(); });
   if (alias.indexOf(INV.DE.toLowerCase()) < 0) {
     throw new Error('Esta cuenta (' + Session.getEffectiveUser().getEmail() + ') no tiene ' + INV.DE +
@@ -222,12 +224,9 @@ function invRevisarAlias_() {
 }
 
 function invEnviar_(to, asunto, t) {
-  GmailApp.sendEmail(to, asunto, t.texto, {
-    from: INV.DE,
-    name: INV.NOMBRE_REMITENTE,
-    replyTo: INV.RESPONDER_A,
-    htmlBody: t.html
-  });
+  const op = { name: INV.NOMBRE_REMITENTE, htmlBody: t.html };
+  if (INV.DE) op.from = INV.DE;
+  GmailApp.sendEmail(to, asunto, t.texto, op);
 }
 
 function invCorreoValido_(s) {
@@ -280,186 +279,176 @@ function invEsc_(s) {
 }
 
 /* ---------------------------- Plantilla ---------------------------- */
+// Correo personal, sin diseño: se ve como un correo normal escrito por Jonathan.
+// {dias} se calcula al momento de enviar. Los links llevan un código por persona
+// (c=) para saber quién le dio clic (columna "Clic en el link").
 
 const INV_TXT = {
   es: {
-    asunto: 'Un boleto, dos Mazda 2 · Gran Rifa Or Barak 2026',
-    pre: 'Sorteo el 10 de diciembre. Boleto de $6,000 MXN, puedes pagar a meses.',
-    eyebrow: 'GRAN RIFA OR BARAK 2026',
-    titulo1: 'Un solo boleto.', titulo2: 'Dos ganadores.',
+    asunto: 'Te voy a ser honesto',
     hola: function (n) { return n ? 'Hola ' + n + ',' : 'Hola,'; },
-    p1: 'Este año rifamos <b style="color:#E8C27A">dos Mazda 2</b> para apoyar a Or Barak, la escuela de secundaria y prepa para jóvenes que necesitan una oportunidad diferente.',
-    p2: 'Cada boleto es una beca, un maestro, un alumno que sigue estudiando. Si ya nos has apoyado antes, sabes lo mucho que significa para nosotros.',
-    prem1t: 'Un Mazda 2', prem1d: 'para quien compra el boleto ganador',
-    prem2t: 'Otro Mazda 2', prem2d: 'para quien vendió ese boleto',
-    d1t: '$6,000', d1d: 'MXN por boleto',
-    d2t: '1,000', d2d: 'boletos en total',
-    d3t: '10 dic', d3d: 'día del sorteo',
-    cta: 'Comprar mi boleto',
-    pago: 'Tarjeta (con opción a meses), transferencia o efectivo. Tu número de boleto te llega al momento por correo.',
-    vendeT: '¿Conoces a alguien que quiera participar?',
-    vendeP: 'Véndele un boleto. Si el boleto que vendiste gana, el segundo Mazda 2 es tuyo.',
-    vendeCta: 'Quiero vender boletos',
-    gracias: 'Gracias por estar con nosotros.',
-    firma: 'Or Barak',
-    dudas: '¿Dudas? Escríbenos por WhatsApp',
-    baja: 'Si no quieres recibir más correos nuestros, responde a este mensaje con la palabra BAJA.',
+    cuerpo: [
+      'Hoy abrí la hoja de la rifa. Faltan {dias} días para el sorteo y vamos muy por debajo de donde necesitamos estar.',
+      'Te voy a ser honesto: me dieron ganas de rendirme.',
+      'Pero no puedo.',
+      'Cada mañana entran a Or Barak muchachos a los que otras escuelas ya les habían cerrado la puerta. Llegaron convencidos de que no servían para estudiar, y hoy están saliendo adelante. Si esto no sale, los que pierden son ellos.',
+      'Además, muchos de ustedes nos apoyaron el año pasado, y eso significó muchísimo para nosotros. Sé que quieren vernos llegar.',
+      'Y la verdad, conozco a nuestra gente. Sé que no nos va a dejar solos.',
+      'Así que en lugar de rendirme, te escribo.',
+      'Este año rifamos 2 Mazda 2, bzh. Uno para quien compra el boleto ganador y otro para quien se lo vendió. El boleto cuesta $6,000 y se puede pagar a meses.',
+      'Te pido que compres el tuyo hoy:<br>{link}',
+      'Si prefieres pagar por transferencia o tienes cualquier duda, contéstame este correo o {wa}. Lo veo yo personalmente.',
+      'Y si este año no puedes, reenvíale este correo a alguien que sí pueda. Cada boleto cuenta.',
+      'Me regreso a mis llamadas. Quedan {dias} días y pienso usarlos todos.'
+    ],
+    waTexto: 'escríbeme por WhatsApp',
+    waMsg: 'Hola Jonathan, te escribo por tu correo de la rifa de Or Barak.',
+    cierre: 'Gracias por estar,',
+    firma: 'Jonathan Ben-Hamu<br>Or Barak',
+    pd: [
+      'P.D. El otro día le propuse algo a uno de nuestros muchachos. Se le complica mucho la vida por estar enganchado al celular. O tal vez está enganchado al celular porque la vida se le complica; a veces no sé cuál es cuál.',
+      'Le dije: hagamos un intercambio. Esta noche tu celular duerme conmigo y el mío contigo.',
+      'Aceptó.',
+      'Yo tuve una noche tranquilísima. Él también.',
+      'Son historias así las que me hacen creer en la valentía y la fuerza de estos muchachos. Por ellos no me rindo.'
+    ]
   },
   en: {
-    asunto: 'One ticket, two Mazda 2 cars · Or Barak Grand Raffle 2026',
-    pre: 'Draw on December 10. Tickets are $6,000 MXN, installments available.',
-    eyebrow: 'OR BARAK GRAND RAFFLE 2026',
-    titulo1: 'One ticket.', titulo2: 'Two winners.',
+    asunto: "I'll be honest with you",
     hola: function (n) { return n ? 'Hi ' + n + ',' : 'Hi,'; },
-    p1: 'This year we are raffling <b style="color:#E8C27A">two Mazda 2 cars</b> to support Or Barak, a middle and high school in Mexico for teenagers who need a different kind of school.',
-    p2: 'Every ticket is a scholarship, a teacher, a student who stays in school. If you have supported us before, you know how much it means to us.',
-    prem1t: 'One Mazda 2', prem1d: 'for whoever buys the winning ticket',
-    prem2t: 'Another Mazda 2', prem2d: 'for whoever sold that ticket',
-    d1t: '$6,000', d1d: 'MXN per ticket',
-    d2t: '1,000', d2d: 'tickets in total',
-    d3t: 'Dec 10', d3d: 'draw date',
-    cta: 'Get my ticket',
-    pago: 'Pay by card (installments available), bank transfer or cash. Your ticket number arrives by email right away.',
-    vendeT: 'Know someone who would like to join?',
-    vendeP: 'Sell them a ticket. If the ticket you sold wins, the second Mazda 2 is yours.',
-    vendeCta: 'I want to sell tickets',
-    gracias: 'Thank you for being with us.',
-    firma: 'Or Barak',
-    dudas: 'Questions? Message us on WhatsApp',
-    baja: 'If you would rather not receive our emails, reply to this message with the word UNSUBSCRIBE.',
+    cuerpo: [
+      "Today I opened the raffle spreadsheet. The draw is {dias} days away, and we're far behind where we need to be.",
+      "I'll be honest with you: I felt like giving up.",
+      "But I can't.",
+      "Every morning, boys walk into Or Barak who had already been turned away by other schools. They came in convinced they weren't cut out for learning, and today they're moving forward. If this doesn't work out, they're the ones who lose.",
+      "Many of you supported us last year, and it meant the world to us. I know you want to see us make it.",
+      "And honestly, I know our people. I know they won't leave us on our own.",
+      "So instead of giving up, I'm writing to you.",
+      "This year, with G-d's help, we're raffling two Mazda 2 cars. One for whoever buys the winning ticket, and one for whoever sold it. A ticket is $6,000 MXN, and you can pay in installments.",
+      "I'm asking you to get yours today:<br>{link}",
+      "If you'd rather pay by bank transfer, or you have any question, just reply to this email or {wa}. I read them myself.",
+      "And if this year you can't, please forward this email to someone who can. Every ticket counts.",
+      "I'm going back to my calls. There are {dias} days left, and I plan to use every one of them."
+    ],
+    waTexto: 'message me on WhatsApp',
+    waMsg: "Hi Jonathan, I'm writing about your Or Barak raffle email.",
+    cierre: 'Thank you for being with us,',
+    firma: 'Jonathan Ben-Hamu<br>Or Barak',
+    pd: [
+      "P.S. The other day I suggested something to one of our boys. His phone makes his life very hard. Or maybe he's glued to his phone because life is hard for him; sometimes I can't tell which comes first.",
+      "I told him: let's swap. Tonight your phone sleeps at my place, and mine sleeps at yours.",
+      "He said yes.",
+      "I had the calmest night. So did he.",
+      "Stories like this make me believe in the courage and strength of these boys. They're the reason I don't give up."
+    ]
   },
   he: {
-    asunto: 'כרטיס אחד, שתי מאזדה 2 · ההגרלה הגדולה של אור ברק 2026',
-    pre: 'ההגרלה ב־10 בדצמבר. כרטיס ב־6,000 פזו מקסיקני, אפשר לשלם בתשלומים.',
-    eyebrow: 'ההגרלה הגדולה של אור ברק 2026',
-    titulo1: 'כרטיס אחד.', titulo2: 'שני זוכים.',
+    asunto: 'אני אהיה כן איתך',
     hola: function (n) { return n ? 'שלום ' + n + ',' : 'שלום,'; },
-    p1: 'השנה אנחנו מגרילים <b style="color:#E8C27A">שתי מכוניות מאזדה 2</b> לטובת אור ברק, בית ספר לחטיבת ביניים ותיכון במקסיקו, לנערים שזקוקים לבית ספר מסוג אחר.',
-    p2: 'כל כרטיס הוא מלגה, מורה, תלמיד שממשיך ללמוד. אם כבר תמכתם בנו בעבר, אתם יודעים כמה זה חשוב לנו.',
-    prem1t: 'מאזדה 2 אחת', prem1d: 'למי שקנה את הכרטיס הזוכה',
-    prem2t: 'מאזדה 2 נוספת', prem2d: 'למי שמכר את הכרטיס הזה',
-    d1t: '6,000', d1d: 'פזו מקסיקני לכרטיס',
-    d2t: '1,000', d2d: 'כרטיסים בסך הכול',
-    d3t: '10.12', d3d: 'יום ההגרלה',
-    cta: 'לקניית כרטיס',
-    pago: 'אשראי (אפשר בתשלומים), העברה בנקאית או מזומן. מספר הכרטיס נשלח אליכם מיד במייל.',
-    vendeT: 'מכירים מישהו שירצה להשתתף?',
-    vendeP: 'מכרו לו כרטיס. אם הכרטיס שמכרתם זוכה, המאזדה 2 השנייה שלכם.',
-    vendeCta: 'אני רוצה למכור כרטיסים',
-    gracias: 'תודה שאתם איתנו.',
-    firma: 'אור ברק',
-    dudas: 'שאלות? כתבו לנו בוואטסאפ',
-    baja: 'אם אינכם רוצים לקבל מאיתנו מיילים, השיבו להודעה זו במילה "הסר".',
+    cuerpo: [
+      'היום פתחתי את הגיליון של ההגרלה. נשארו {dias} ימים עד ההגרלה, ואנחנו רחוקים מאוד מהמקום שבו אנחנו צריכים להיות.',
+      'אני אהיה כן איתך: התחשק לי להרים ידיים.',
+      'אבל אני לא יכול.',
+      'כל בוקר נכנסים לאור ברק נערים שבתי ספר אחרים כבר סגרו בפניהם את הדלת. הם הגיעו משוכנעים שהם לא מסוגלים ללמוד, והיום הם מתקדמים. אם זה לא יצליח, מי שיפסידו הם הם.',
+      'רבים מכם תמכו בנו בשנה שעברה, וזה היה חשוב לנו מאוד. אני יודע שאתם רוצים לראות אותנו מצליחים.',
+      'והאמת, אני מכיר את האנשים שלנו. אני יודע שהם לא ישאירו אותנו לבד.',
+      'אז במקום להרים ידיים, אני כותב לך.',
+      'השנה אנחנו מגרילים, בעזרת ה\', שתי מכוניות מאזדה 2. אחת למי שקונה את הכרטיס הזוכה, ואחת למי שמכר אותו. כרטיס עולה 6,000 פסו מקסיקני, ואפשר לשלם בתשלומים.',
+      'אני מבקש ממך לקנות את הכרטיס שלך היום:<br>{link}',
+      'אם נוח לך יותר לשלם בהעברה בנקאית, או שיש לך שאלה, פשוט תענה למייל הזה או {wa}. אני קורא הכול בעצמי.',
+      'ואם השנה זה לא מתאפשר, תעביר את המייל הזה למישהו שכן יכול. כל כרטיס חשוב.',
+      'אני חוזר לטלפונים. נשארו {dias} ימים, ואני מתכוון לנצל כל אחד מהם.'
+    ],
+    waTexto: 'תכתוב לי בוואטסאפ',
+    waMsg: 'שלום יהונתן, אני כותב בעקבות המייל שלך על ההגרלה של אור ברק.',
+    cierre: 'תודה שאתה איתנו,',
+    firma: 'יהונתן בן חמו<br>אור ברק',
+    pd: [
+      'נ.ב. לפני כמה ימים הצעתי משהו לאחד הנערים שלנו. הוא כל כך מחובר לטלפון שזה מסבך לו את החיים. או אולי הוא מחובר לטלפון כי החיים מסובכים לו; לפעמים אני לא יודע מה קודם.',
+      'אמרתי לו: בוא נעשה החלפה. הלילה הטלפון שלך ישן אצלי, ושלי אצלך.',
+      'הוא הסכים.',
+      'לי היה לילה שקט במיוחד. גם לו.',
+      'סיפורים כאלה גורמים לי להאמין באומץ ובכוח של הנערים האלה. בשבילם אני לא מרים ידיים.'
+    ]
   }
 };
 
-function invTemplate_(lang, nombre) {
+function invDiasFaltan_() {
+  return Math.max(1, Math.floor((new Date(INV.SORTEO_ISO).getTime() - Date.now()) / 86400000));
+}
+
+function invToken_(email) {
+  const d = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email).trim().toLowerCase());
+  return d.slice(0, 6).map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
+}
+
+function invTemplate_(lang, nombre, email) {
   const L = INV_TXT[lang] || INV_TXT.es;
   const rtl = lang === 'he';
-  const dir = rtl ? 'rtl' : 'ltr';
-  const al = rtl ? 'right' : 'left';
-  const n = invEsc_(invNombreSaludo_(nombre));
-  const utm = 'utm_source=correo&utm_medium=email&utm_campaign=invitacion2026';
-  const url = INV.SITIO + '?lang=' + lang + '&' + utm + '#comprar';
-  const urlVende = INV.SITIO + '?lang=' + lang + '&' + utm + '#vendedores';
-  const wa = 'https://wa.me/' + INV.WHATSAPP;
-  const img = INV.SITIO + 'assets/';
-  const font = rtl ? "Arial,'Helvetica Neue',Helvetica,sans-serif" : "'Helvetica Neue',Helvetica,Arial,sans-serif";
-  const ls = rtl ? '0' : '1px';
-  const gold = '#D2A45C', goldHi = '#E8C27A', bg = '#0A0908', card = '#14110E', line = '#3A2F22', text = '#F4EFE6', muted = '#B5AA98';
+  const dias = invDiasFaltan_();
+  const url = INV.SITIO + '?lang=' + lang + '&utm_source=correo&utm_medium=email&utm_campaign=honesto2026' +
+    (email ? '&c=' + invToken_(email) : '');
+  const urlTxt = 'rifa.orbarakmx.com';
+  const wa = 'https://wa.me/' + INV.WHATSAPP + '?text=' + encodeURIComponent(L.waMsg);
+  const saludo = L.hola(invEsc_(invNombreSaludo_(nombre)));
 
-  const dato = function (t, d) {
-    return '<td width="33%" align="center" style="padding:16px 6px;border-top:1px solid ' + line + ';border-bottom:1px solid ' + line + ';">' +
-      '<div style="font-size:24px;line-height:28px;color:' + goldHi + ';font-weight:300;letter-spacing:1px;">' + t + '</div>' +
-      '<div style="font-size:11px;line-height:16px;color:' + muted + ';letter-spacing:' + ls + ';text-transform:uppercase;padding-top:4px;">' + d + '</div></td>';
+  const fill = function (p, html) {
+    return p.split('{dias}').join(String(dias))
+      .split('{link}').join(html ? '<a href="' + url + '">' + urlTxt + '</a>' : url)
+      .split('{wa}').join(html ? '<a href="' + wa + '">' + L.waTexto + '</a>' : L.waTexto + ' (' + wa + ')');
   };
-  const premio = function (t, d) {
-    return '<td width="50%" valign="top" align="center" style="padding:20px 12px;">' +
-      '<div style="font-size:17px;line-height:22px;color:' + goldHi + ';font-weight:600;letter-spacing:' + ls + ';">' + t + '</div>' +
-      '<div style="font-size:14px;line-height:20px;color:' + text + ';padding-top:6px;">' + d + '</div></td>';
-  };
-  const boton = function (href, txt, solido) {
-    return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr><td align="center" bgcolor="' + (solido ? gold : bg) + '" style="border-radius:999px;' + (solido ? '' : 'border:1px solid ' + gold + ';') + '">' +
-      '<a href="' + href + '" target="_blank" style="display:inline-block;padding:' + (solido ? '16px 40px' : '12px 28px') + ';font-family:' + font + ';font-size:' + (solido ? '16px' : '14px') + ';font-weight:600;letter-spacing:' + ls + ';color:' + (solido ? '#1A1208' : goldHi) + ';text-decoration:none;border-radius:999px;">' + txt + '</a></td></tr></table>';
-  };
+  const parrafos = [saludo].concat(L.cuerpo.map(function (p) { return fill(p, true); }),
+    [L.cierre + '<br><br>' + L.firma], L.pd);
 
-  const html =
-'<!doctype html><html lang="' + lang + '" dir="' + dir + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-'<meta name="color-scheme" content="dark light"><meta name="supported-color-schemes" content="dark light"><title>' + L.asunto + '</title></head>' +
-'<body style="margin:0;padding:0;background:' + bg + ';" dir="' + dir + '">' +
-'<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:' + bg + ';">' + L.pre + '</div>' +
-'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' + bg + '" style="background:' + bg + ';"><tr><td align="center" style="padding:24px 12px;">' +
-'<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" dir="' + dir + '" style="width:100%;max-width:600px;background:' + card + ';border:1px solid ' + line + ';border-radius:16px;overflow:hidden;font-family:' + font + ';color:' + text + ';">' +
+  const html = '<div dir="' + (rtl ? 'rtl' : 'ltr') + '" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#222;' +
+    (rtl ? 'text-align:right;' : '') + '">' +
+    parrafos.map(function (p) { return '<p style="margin:0 0 14px;">' + p + '</p>'; }).join('') + '</div>';
 
-// Encabezado con escudo
-'<tr><td align="center" style="padding:34px 30px 8px;">' +
-'<img src="' + img + 'escudo-sm.jpg" width="72" height="79" alt="Or Barak" style="display:block;border:0;width:72px;height:auto;margin:0 auto 18px;">' +
-'<div style="font-size:12px;letter-spacing:' + (rtl ? '0' : '3px') + ';color:' + gold + ';font-weight:600;">' + L.eyebrow + '</div>' +
-'<div style="font-size:30px;line-height:36px;font-weight:300;color:' + text + ';padding-top:14px;letter-spacing:' + (rtl ? '0' : '1px') + ';">' + L.titulo1 + '<br><span style="color:' + goldHi + ';font-weight:500;">' + L.titulo2 + '</span></div>' +
-'</td></tr>' +
-
-// Autos
-'<tr><td style="padding:18px 0 0;"><a href="' + url + '" target="_blank"><img src="' + img + 'correo-autos.jpg" width="600" alt="Mazda 2" style="display:block;border:0;width:100%;max-width:600px;height:auto;"></a></td></tr>' +
-
-// Premios
-'<tr><td style="padding:0 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="' + dir + '"><tr>' +
-premio(L.prem1t, L.prem1d) +
-'<td width="1" style="background:' + line + ';font-size:0;line-height:0;">&nbsp;</td>' +
-premio(L.prem2t, L.prem2d) +
-'</tr></table></td></tr>' +
-
-// Texto
-'<tr><td style="padding:14px 36px 6px;text-align:' + al + ';font-size:16px;line-height:26px;color:' + text + ';" dir="' + dir + '">' +
-'<p style="margin:0 0 14px;">' + L.hola(n) + '</p>' +
-'<p style="margin:0 0 14px;">' + L.p1 + '</p>' +
-'<p style="margin:0;color:' + muted + ';">' + L.p2 + '</p>' +
-'</td></tr>' +
-
-// Datos
-'<tr><td style="padding:24px 30px 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="' + dir + '"><tr>' +
-dato(L.d1t, L.d1d) + dato(L.d2t, L.d2d) + dato(L.d3t, L.d3d) +
-'</tr></table></td></tr>' +
-
-// CTA
-'<tr><td align="center" style="padding:28px 30px 10px;">' + boton(url, L.cta, true) + '</td></tr>' +
-'<tr><td align="center" style="padding:6px 44px 30px;font-size:13px;line-height:20px;color:' + muted + ';">' + L.pago + '</td></tr>' +
-
-// Vendedores
-'<tr><td style="padding:0 30px 30px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ' + line + ';border-radius:12px;"><tr><td align="center" style="padding:22px 20px;">' +
-'<div style="font-size:16px;line-height:22px;color:' + text + ';font-weight:600;">' + L.vendeT + '</div>' +
-'<div style="font-size:14px;line-height:21px;color:' + muted + ';padding:8px 0 16px;">' + L.vendeP + '</div>' +
-boton(urlVende, L.vendeCta, false) +
-'</td></tr></table></td></tr>' +
-
-// Cierre
-'<tr><td align="center" style="padding:0 30px 30px;font-size:15px;line-height:22px;color:' + text + ';">' + L.gracias + '<br><span style="color:' + gold + ';letter-spacing:' + (rtl ? '0' : '3px') + ';font-size:13px;">' + L.firma.toUpperCase() + '</span></td></tr>' +
-
-'</table>' +
-
-// Pie
-'<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" dir="' + dir + '" style="width:100%;max-width:600px;font-family:' + font + ';"><tr><td align="center" style="padding:20px 24px 8px;font-size:12px;line-height:19px;color:#7D7466;">' +
-'<a href="' + wa + '" target="_blank" style="color:' + gold + ';text-decoration:none;">' + L.dudas + '</a> · <a href="mailto:' + INV.DE + '" style="color:' + gold + ';text-decoration:none;">' + INV.DE + '</a><br>' +
-'<a href="' + INV.SITIO + '?lang=' + lang + '&' + utm + '" target="_blank" style="color:#7D7466;text-decoration:none;">rifa.orbarakmx.com</a><br><br>' + L.baja +
-'</td></tr></table>' +
-'</td></tr></table></body></html>';
-
-  const texto = [
-    L.hola(invNombreSaludo_(nombre)), '',
-    L.titulo1 + ' ' + L.titulo2, '',
-    L.p1.replace(/<[^>]+>/g, ''), '',
-    L.p2, '',
-    '- ' + L.prem1t + ': ' + L.prem1d,
-    '- ' + L.prem2t + ': ' + L.prem2d, '',
-    L.d1t + ' ' + L.d1d + ' · ' + L.d2t + ' ' + L.d2d + ' · ' + L.d3t + ' ' + L.d3d, '',
-    L.cta + ': ' + url, '',
-    L.pago, '',
-    L.vendeT + ' ' + L.vendeP + ' ' + urlVende, '',
-    L.gracias, L.firma, '',
-    L.dudas + ': ' + wa, '',
-    L.baja
-  ].join('\n');
+  const texto = [L.hola(invNombreSaludo_(nombre))]
+    .concat(L.cuerpo.map(function (p) { return fill(p, false).replace(/<br>/g, '\n'); }),
+      [L.cierre + '\n' + L.firma.replace(/<br>/g, '\n')], L.pd).join('\n\n');
 
   return { asunto: L.asunto, html: html, texto: texto };
+}
+
+/* ---------------------------- Clics (web app) ---------------------------- */
+// La página de la rifa llama a esta web app con ?c=<código> cuando alguien llega
+// desde el correo. Se anota en la columna "Clic en el link": primera vez y cuántas.
+function doGet(e) {
+  const c = String((e && e.parameter && e.parameter.c) || '').replace(/[^0-9a-f]/g, '').slice(0, 12);
+  if (c) {
+    const lock = LockService.getScriptLock();
+    if (lock.tryLock(10000)) {
+      try {
+        const sh = SpreadsheetApp.getActive().getSheetByName(INV.HOJA);
+        if (sh && sh.getLastRow() > 1) {
+          const emails = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+          for (let i = 0; i < emails.length; i++) {
+            if (emails[i][0] && invToken_(emails[i][0]) === c) {
+              const cel = sh.getRange(i + 2, 7);
+              const prev = String(cel.getValue() || '');
+              const m = prev.match(/\((\d+)\)$/);
+              const veces = m ? Number(m[1]) + 1 : 1;
+              const primera = prev ? prev.replace(/\s*\(\d+\)$/, '') :
+                Utilities.formatDate(new Date(), 'America/Mexico_City', 'yyyy-MM-dd HH:mm');
+              cel.setValue(primera + ' (' + veces + ')');
+              break;
+            }
+          }
+        }
+      } finally { lock.releaseLock(); }
+    }
+  }
+  return ContentService.createTextOutput('ok');
+}
+
+// Cuántos le dieron clic (para verlo rápido en el registro de ejecución).
+function invitacionContarClics() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(INV.HOJA);
+  const v = sh.getRange(2, 1, sh.getLastRow() - 1, INV_COLS.length).getValues();
+  const enviados = v.filter(function (r) { return /^OK/.test(String(r[4])); }).length;
+  const clics = v.filter(function (r) { return r[6]; }).length;
+  Logger.log('Enviados: ' + enviados + ' · Personas que dieron clic: ' + clics);
 }
 
 /* ---------------------------- Rebotes ---------------------------- */
