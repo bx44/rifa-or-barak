@@ -294,7 +294,7 @@ const INV_TXT = {
       'Hoy abrí la hoja de la rifa. Faltan {dias} días y vamos muy por debajo de donde necesitamos estar.',
       'Te voy a ser honesto: me dieron ganas de rendirme.',
       'Pero no puedo.',
-      'Cada mañana entran a Or Barak muchachos a los que otras escuelas ya les habían cerrado la puerta. Llegaron convencidos de que no servían para estudiar, y hoy están saliendo adelante. Si esto no sale, los que pierden son ellos.',
+      'Cada mañana entran a Or Barak muchachos a los que otras escuelas ya les habían cerrado las puertas. Llegaron convencidos de que no servían para estudiar, y hoy están saliendo adelante. Si esto no sale, los que pierden son ellos.',
       'Además, muchos de ustedes nos han apoyado durante años, y eso ha significado muchísimo para nosotros. Sé que quieren vernos llegar.',
       'Y la verdad, conozco a nuestra gente. Sé que no nos va a dejar solos.',
       'Así que en lugar de rendirme, te escribo.',
