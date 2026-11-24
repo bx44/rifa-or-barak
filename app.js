@@ -269,6 +269,7 @@
       av.textContent = it.anon ? '✦' : iniciales(it.nombre);
       const body = document.createElement('div');
       const nm = document.createElement('p'); nm.className = 'wall-name'; nm.textContent = it.nombre; body.appendChild(nm);
+      if (it.n > 1) { const nb = document.createElement('p'); nb.className = 'wall-time'; nb.textContent = T('{n} boletos', { n: it.n }); body.appendChild(nb); }
       if (it.dedTipo && it.dedTexto) {
         const dd = document.createElement('p'); dd.className = 'wall-ded';
         if (it.dedTipo === 'Otra') { dd.textContent = it.dedTexto; }

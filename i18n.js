@@ -109,6 +109,7 @@
     '¿Cómo quieres aparecer en el muro?': ['How would you like to appear on the wall?', 'איך תרצו להופיע על הקיר?'],
     'Con mi nombre': ['With my name', 'בשמי'],
     'Anónimo': ['Anonymous', 'אנונימי'],
+    '{n} boletos': ['{n} tickets', '{n} כרטיסים'],
     'A nombre de…': ['In the name of…', 'על שם…'],
     'Nombre de la persona o familia': ['Name of the person or family', 'שם האדם או המשפחה'],
     'Nombre de la persona': ['Name of the person', 'שם האדם'],
