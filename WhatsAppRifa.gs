@@ -177,3 +177,51 @@ function waMarcarApoyo() {
   Logger.log(msg);
   return msg;
 }
+
+/* ------------------------------------------------------------
+ *  waExportar → arma el archivo para WARocket con los que tienen
+ *  Enviar = SI: columnas Phone y Name (nombre para el saludo).
+ *  Además saca a la familia y a los contactos "de Mone".
+ * ------------------------------------------------------------ */
+const WA_SACAR = [/\bima\b/i, /ben-?hamu/i, /^¡?batsheva/i, /^t[ií]o moti/i, /de mone\b/i, /dormimundo/i, /kia forte/i];
+
+function waSaludoFinal_(guardado, saludo) {
+  const g = String(guardado || '').replace(/[^\p{L}\s.'-]/gu, ' ').replace(/\s+/g, ' ').trim();
+  let m;
+  if ((m = g.match(/^(?:r|rab|rav|rabbi)\.?\s+(\p{L}+)/iu))) return 'Rab ' + m[1];
+  if ((m = g.match(/^(mora|mor[eé])\s+(\p{L}+)/iu))) return (/^mora$/i.test(m[1]) ? 'Mora ' : 'Moré ') + m[2];
+  if ((m = g.match(/^dr\.?\s+(\p{L}+)/iu))) return 'Dr. ' + m[1];
+  if ((m = g.match(/^(?:ing|sr|sra)\.?\s+(\p{L}+)/iu))) return m[1];
+  if ((m = g.match(/^t[ií]o\s+(\p{L}+)/iu))) return 'Tío ' + m[1];
+  return saludo || g.split(' ')[0] || '';
+}
+
+function waExportar() {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(WA.HOJA);
+  const n = sh.getLastRow() - 1;
+  const v = sh.getRange(2, 1, n, 7).getValues();
+  const filas = [], sacados = [];
+  v.forEach(function (r, i) {
+    if (r[5] !== 'SI') return;
+    if (WA_SACAR.some(function (re) { return re.test(String(r[1])); })) {
+      sacados.push(r[1]);
+      sh.getRange(i + 2, 6, 1, 2).setValues([['NO', 'Familia / de Mone / no aplica']]);
+      return;
+    }
+    filas.push([String(r[0]), waSaludoFinal_(r[1], r[2]), r[1]]);
+  });
+  const env = ss.getSheetByName('WhatsApp Envío') || ss.insertSheet('WhatsApp Envío');
+  env.clear();
+  env.getRange(1, 1, 1, 3).setValues([['Phone', 'Name', 'Nombre guardado']]).setFontWeight('bold');
+  env.getRange(2, 1, filas.length, 1).setNumberFormat('@');
+  env.getRange(2, 1, filas.length, 3).setValues(filas);
+
+  const out = SpreadsheetApp.create('Lista WhatsApp Rifa (WARocket)');
+  const s = out.getSheets()[0];
+  s.setName('Lista');
+  s.getRange(1, 1, 1, 2).setValues([['Phone', 'Name']]);
+  s.getRange(2, 1, filas.length, 1).setNumberFormat('@');
+  s.getRange(2, 1, filas.length, 2).setValues(filas.map(function (f) { return [f[0], f[1]]; }));
+  Logger.log('Para enviar: ' + filas.length + ' · Sacados: ' + sacados.join(' | ') + ' · Archivo: ' + out.getId());
+}
