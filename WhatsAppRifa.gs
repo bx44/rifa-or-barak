@@ -91,3 +91,89 @@ function waSaludo_(given, display) {
   let n = limpiar(given) || limpiar(display).split(' ')[0] || '';
   return n.split(' ')[0];
 }
+
+/* ------------------------------------------------------------
+ *  waMarcarApoyo → deja en "Enviar = SI" solo a quien nos ha apoyado
+ *  (aparece en Donativos/Cobrados de Cobranza o en las listas de
+ *  donadores), y saca a Mone y a quien donó más de $5,000 en los
+ *  últimos 3 meses.
+ * ------------------------------------------------------------ */
+const WA_COBRANZA_ID = '1LzPGO6Mun_96Y9a3Dxae00CJcjxLH18HQjCJloqd-dE';
+const WA_EXCLUIR_APOYO = ['mone lev'];
+const WA_TOPE_3M = 5000;
+
+function waMarcarApoyo() {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(WA.HOJA);
+  const cb = SpreadsheetApp.openById(WA_COBRANZA_ID);
+  const d10 = function (v) { const d = String(v || '').replace(/\D/g, ''); return d.length >= 10 ? d.slice(-10) : ''; };
+  const norm = function (s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/^(sr|sra|srita|rab|rav|dr)\.?\s+/, '').replace(/\s+/g, ' ').trim(); };
+
+  // Teléfonos por nombre (Cobranza > Contactos)
+  const telsPorNombre = {};
+  const add = function (n, t) { n = norm(n); t = d10(t); if (n && t) (telsPorNombre[n] = telsPorNombre[n] || {})[t] = true; };
+  const ct = cb.getSheetByName('Contactos').getDataRange().getValues();
+  ct.slice(1).forEach(function (r) { add(r[3], r[4]); add(r[3], r[5]); });
+
+  const apoyo = {}, fuente = function (t, f) { if (t) apoyo[t] = apoyo[t] || f; };
+  // Donativos (compromisos)
+  const dn = cb.getSheetByName('Donativos').getDataRange().getValues();
+  dn.slice(1).forEach(function (r) { fuente(d10(r[3]), 'Donativos'); add(r[2], r[3]); });
+
+  // Cobrados: quién pagó y cuánto en los últimos 3 meses
+  const meses = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 };
+  const fecha = function (v) {
+    if (v instanceof Date) return v;
+    const m = String(v || '').match(/(\d{1,2})\/([a-z]{3})\/(\d{2,4})/i);
+    if (!m || meses[m[2].toLowerCase()] === undefined) return null;
+    const y = Number(m[3]) < 100 ? 2000 + Number(m[3]) : Number(m[3]);
+    return new Date(y, meses[m[2].toLowerCase()], Number(m[1]));
+  };
+  const num = function (v) { return typeof v === 'number' ? v : Number(String(v || '').replace(/[^0-9.]/g, '')) || 0; };
+  const desde = new Date(Date.now() - 92 * 86400000);
+  const recientePorNombre = {};
+  const co = cb.getSheetByName('Cobrados').getDataRange().getValues();
+  co.slice(2).forEach(function (r) {
+    const n = norm(r[2]); if (!n) return;
+    Object.keys(telsPorNombre[n] || {}).forEach(function (t) { fuente(t, 'Cobrados'); });
+    const f = fecha(r[1]);
+    if (f && f >= desde) recientePorNombre[n] = (recientePorNombre[n] || 0) + num(r[3]) + num(r[4]) * 18;
+  });
+  const grandes = {};
+  Object.keys(recientePorNombre).forEach(function (n) {
+    if (recientePorNombre[n] > WA_TOPE_3M) Object.keys(telsPorNombre[n] || {}).forEach(function (t) { grandes[t] = Math.round(recientePorNombre[n]); });
+  });
+
+  // Listas de donadores de la hoja de correos
+  ['Contactos', 'Contactos extranjeros'].forEach(function (h) {
+    const s = ss.getSheetByName(h); if (!s) return;
+    const v = s.getDataRange().getValues(); const enc = v[0].map(function (x) { return String(x).toLowerCase(); });
+    const cols = [enc.indexOf('tel'), enc.indexOf('tel2')].filter(function (i) { return i >= 0; });
+    v.slice(1).forEach(function (r) { cols.forEach(function (i) { fuente(d10(r[i]), 'Lista donadores'); }); });
+  });
+
+  // Aplicar a la hoja de WhatsApp
+  const n = sh.getLastRow() - 1;
+  const data = sh.getRange(2, 1, n, 7).getValues();
+  let si = 0, grandesN = 0, excl = 0;
+  const out = data.map(function (r) {
+    const t = d10(r[0]);
+    const nombre = String(r[1]).toLowerCase();
+    const ap = apoyo[t] || '';
+    const g = grandes[t] ? '$' + grandes[t].toLocaleString('es-MX') : '';
+    const mone = WA_EXCLUIR_APOYO.some(function (x) { return nombre.indexOf(x) >= 0; });
+    let enviar = 'NO', nota = r[6];
+    if (r[4] === 'SI') nota = 'Ya está en la rifa';
+    else if (r[6] === 'Excluido' || mone) { nota = 'Excluido'; excl++; }
+    else if (g) { nota = 'Donó ' + g + ' en 3 meses'; grandesN++; }
+    else if (!ap) nota = 'Sin historial de apoyo';
+    else { enviar = 'SI'; nota = ''; si++; }
+    return [enviar, nota, ap, g];
+  });
+  sh.getRange(1, 8, 1, 2).setValues([['Apoyo (fuente)', 'Donó 3 meses']]).setFontWeight('bold');
+  sh.getRange(2, 6, n, 2).setValues(out.map(function (o) { return [o[0], o[1]]; }));
+  sh.getRange(2, 8, n, 2).setValues(out.map(function (o) { return [o[2], o[3]]; }));
+  const msg = 'Para enviar: ' + si + '. Fuera por donar >$5,000 en 3 meses: ' + grandesN + '. Excluidos (Mone, Yoel, tú): ' + excl + '.';
+  Logger.log(msg);
+  return msg;
+}
