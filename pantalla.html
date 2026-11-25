@@ -187,7 +187,7 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   <label for="iAlum">Alumnos y exalumnos que compiten — un nombre por renglón</label>
   <textarea id="iAlum" rows="7" placeholder="Yosef Jaim Zonana&#10;David Lombroso&#10;…"></textarea>
   <div class="btns"><button class="alt" id="bTodos">Poner a todos los que han vendido</button></div>
-  <div class="hint">Todas las ventas del día suman para la meta y salen en "Últimas ventas", sea de quien sea. El ranking y los premios son sólo para quien esté en esta lista, y cuentan todo lo que lleva vendido, no sólo lo de hoy. Vacía la lista y compiten todos menos la dirección.</div>
+  <div class="hint"><b>Lo normal es no tocar esto:</b> la lista sale de la columna <b>Alumno</b> de la hoja COMPRADORES, y lo que haya ahí le gana a lo que escribas aquí. Esta caja es sólo para salir del paso en esta computadora si la hoja no está a la mano.<br><br>Todas las ventas del día suman para la meta y salen en "Últimas ventas", sea de quien sea. El ranking y los premios son sólo para los alumnos, y cuentan todo lo que llevan vendido, no sólo lo de hoy.</div>
 
   <div class="btns"><button id="bSave">Guardar</button><button class="alt" id="bTest">Probar celebración</button><button class="alt" id="bFull">Pantalla completa</button></div>
   <div class="hint">La pantalla se actualiza sola cada 15 segundos. Lo que configures aquí se queda guardado en esta computadora.</div>
@@ -264,9 +264,24 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   //    (tecla B) la puede ajustar en el momento, sólo en esa computadora.
   const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/\s+/g, ' ').trim().toLowerCase();
+  // De dónde sale la lista, en este orden:
+  //   1. La hoja (columna Alumno de COMPRADORES). Es la buena: una sola
+  //      verdad, la mantiene Sara y vale en cualquier computadora.
+  //   2. Lo que se haya escrito en el panel de ESTA computadora.
+  //   3. config.js, por si algún día se quiere fijar desde el repo.
+  let alumnosHoja = null;
   function listaAlumnos() {
-    const de = (S.alumnos && S.alumnos.length) ? S.alumnos : (C.ALUMNOS || []);
+    const de = (alumnosHoja && alumnosHoja.length) ? alumnosHoja
+             : (S.alumnos && S.alumnos.length) ? S.alumnos
+             : (C.ALUMNOS || []);
     return de.map(norm).filter(Boolean);
+  }
+
+  async function cargarAlumnos() {
+    try {
+      const r = await (await fetch(C.API_URL + '?accion=web&op=alumnos&_=' + Date.now())).json();
+      if (r && r.ok && Array.isArray(r.alumnos)) alumnosHoja = r.alumnos;
+    } catch (e) { /* sin lista, manda el respaldo */ }
   }
   function compite(v) {
     const l = listaAlumnos();
@@ -314,9 +329,9 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
     // Que nadie proyecte el ranking sin saber que está corriendo con la
     // regla de respaldo en vez de con la lista de alumnos.
     if (!listaAlumnos().length) {
-      partes.push('Falta la lista de alumnos y exalumnos: por ahora el ' +
-        'ranking muestra a <b>todos menos la dirección</b>. Se carga en el ' +
-        'panel, tecla <b>B</b>.');
+      partes.push('Falta marcar quiénes son alumnos y exalumnos: por ahora el ' +
+        'ranking muestra a <b>todos menos la dirección</b>. Se marca con <b>SI</b> ' +
+        'en la columna <b>Alumno</b> de la hoja COMPRADORES.');
     }
 
     el.hidden = !partes.length;
@@ -466,7 +481,12 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }); pintarBoost(); }, 500);
   setInterval(cargar, 15000);
   setInterval(pintar, 30000);
-  cargar(); pintarBoost();
+  // La lista de alumnos cambia poco: se lee al abrir y cada 2 minutos, no
+  // cada 15 segundos como las ventas. Si se marca a alguien a media función,
+  // entra solo.
+  setInterval(function () { cargarAlumnos().then(pintar); }, 120000);
+  cargarAlumnos().then(cargar);
+  pintarBoost();
 })();
 </script>
 </body>
