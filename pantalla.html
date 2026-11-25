@@ -57,6 +57,16 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family
 .goal .gtxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 1.6vw;font-weight:800;font-size:2.4vh;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .goalnote{margin:1vh 0 2vh;font-size:2.3vh;color:var(--mut);font-weight:600}
 .goalnote b{color:var(--gold2)}
+/* Aviso de por qué la pantalla no muestra ventas. Sin esto, una pantalla
+   que está filtrando se ve idéntica a una pantalla descompuesta. */
+.aviso{margin:0 0 2vh;padding:1.4vh 1.6vh;border-radius:1vh;font-size:2vh;
+  line-height:1.45;font-weight:600;background:rgba(201,155,82,.12);
+  border:1px solid rgba(201,155,82,.45);color:var(--gold2)}
+.aviso b{color:#fff}
+.aviso[hidden]{display:none}
+.prueba{position:fixed;top:1.2vh;left:50%;transform:translateX(-50%);z-index:26;
+  background:var(--hot,#ff7a00);color:#111;font-weight:800;font-size:1.7vh;
+  padding:.5vh 1.4vh;border-radius:99px;letter-spacing:.08em}
 .feed{flex:1;min-height:0;display:flex;flex-direction:column;gap:1vh;overflow:hidden}
 .sale{display:flex;align-items:center;gap:1.2vw;padding:1.1vh 1.2vw;border-radius:14px;background:#1e1a48;animation:in .6s}
 @keyframes in{from{opacity:0;transform:translateY(-1.5vh)}}
@@ -132,6 +142,7 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
       <div class="big"><div class="n" id="nHoy">0</div><div class="u">boletos</div></div>
       <div class="goal"><div class="fill" id="gFill"></div><div class="gtxt"><span id="gLeft">0</span><span>🍽️ <span id="gMeta">150</span></span></div></div>
       <div class="goalnote" id="gNote"></div>
+      <div class="aviso" id="aviso" hidden></div>
       <div class="lbl" style="margin-bottom:1vh">Últimas ventas</div>
       <div class="feed" id="feed"><div class="empty">Aquí van a ir apareciendo las ventas.</div></div>
     </div>
@@ -186,7 +197,11 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   let S = Object.assign({}, DEF);
   try { Object.assign(S, JSON.parse(localStorage.getItem('pantalla_rifa') || '{}')); } catch (e) {}
   const q = new URLSearchParams(location.search);
-  if (q.get('desde')) S.inicio = q.get('desde');
+  // ?desde=2026-11-24T00:00 sirve para ensayar la pantalla antes del evento
+  // sin tocar la configuración guardada. Se marca en grande para que el día
+  // del evento nadie confunda un ensayo con la pantalla de verdad.
+  const esPrueba = !!q.get('desde');
+  if (esPrueba) S.inicio = q.get('desde');
   const guardar = () => { try { localStorage.setItem('pantalla_rifa', JSON.stringify(S)); } catch (e) {} };
 
   let ventas = [], vistos = null, cola = [], mostrando = false, boostCerrado = null;
@@ -240,9 +255,45 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   }
 
   /* ---------- pintar ---------- */
+  // Una pantalla que filtra se ve igual que una pantalla rota: cero ventas y
+  // "todavía nadie vende". Esto dice en voz alta qué está escondiendo y por
+  // qué, para que nadie se quede viendo un cero creyendo que falló el enlace.
+  // "11:00 a.m." ya trae punto al final en es-MX; sin esto queda "a.m..".
+  const fecha = (ms, o) => new Date(ms).toLocaleString('es-MX', o).replace(/\.$/, '');
+
+  function avisar() {
+    const el = $('aviso'), ini = inicioMs(), ahora = Date.now();
+    const antes = ventas.filter((v) => v.t < ini).length;
+    const porAdm = ventas.filter((v) => v.t >= ini && S.sinAdm && v.adm).length;
+    const partes = [];
+
+    if (ini > ahora) {
+      partes.push('Esta pantalla empieza a contar el <b>' +
+        fecha(ini, { weekday: 'long', day: 'numeric',
+          month: 'long', hour: 'numeric', minute: '2-digit' }) + '</b>.' +
+        (antes ? ' Las <b>' + antes + '</b> ventas anteriores no se muestran.' : ''));
+      partes.push('Para ensayarla hoy, abre el panel con la tecla <b>B</b> y ' +
+        'cambia la fecha de inicio, o entra con <b>?desde=' +
+        new Date(Date.now() - 864e5).toISOString().slice(0, 10) + 'T00:00</b> al final de la liga.');
+    } else if (antes) {
+      partes.push('Se cuentan las ventas desde <b>' +
+        fecha(ini, { day: 'numeric', month: 'long',
+          hour: 'numeric', minute: '2-digit' }) + '</b>. Hay <b>' + antes +
+        '</b> anteriores que no entran.');
+    }
+    if (porAdm) {
+      partes.push('<b>' + porAdm + '</b> ventas del administrador están ocultas ' +
+        '(se apaga en el panel, tecla B).');
+    }
+
+    el.hidden = !partes.length;
+    el.innerHTML = partes.join('<br>');
+  }
+
   function pintar() {
     const hoy = ventas.filter(cuenta);
     const n = hoy.length, meta = Number(S.meta) || 150;
+    avisar();
     const nEl = $('nHoy'); if (nEl.textContent !== String(n)) { nEl.textContent = n; nEl.classList.remove('bump'); void nEl.offsetWidth; nEl.classList.add('bump'); }
     $('gFill').style.width = Math.min(100, Math.max(n ? 4 : 0, n / meta * 100)) + '%';
     $('gLeft').textContent = n + ' de ' + meta; $('gMeta').textContent = meta;
@@ -350,6 +401,14 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
     document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {});
     $('start').style.display = 'none';
   };
+
+  if (esPrueba) {
+    const b = document.createElement('div');
+    b.className = 'prueba';
+    b.textContent = 'ENSAYO — contando desde ' +
+      new Date(S.inicio).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+    document.body.appendChild(b);
+  }
 
   /* ---------- relojes ---------- */
   setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' }); pintarBoost(); }, 500);
