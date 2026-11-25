@@ -112,7 +112,8 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
 .panel h3{margin:0 0 10px;font:700 16px Montserrat,sans-serif;color:var(--navy)}
 .panel h4{margin:16px 0 6px;font:700 13px Montserrat,sans-serif;color:var(--navy);text-transform:uppercase;letter-spacing:1px}
 .panel label{display:block;margin:8px 0 3px;font-weight:600}
-.panel input[type=text],.panel input[type=number],.panel input[type=datetime-local]{width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;font:inherit}
+.panel input[type=text],.panel input[type=number],.panel input[type=datetime-local],.panel textarea{width:100%;padding:8px;border:1px solid #ccc;border-radius:8px;font:inherit}
+.panel textarea{resize:vertical;line-height:1.5}
 .panel .chk{display:flex;align-items:center;gap:8px;font-weight:600;margin:8px 0}
 .panel .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .panel button{font:700 13px Montserrat,sans-serif;padding:9px 14px;border-radius:10px;border:0;cursor:pointer;background:var(--navy);color:#fff}
@@ -180,8 +181,14 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   <input type="datetime-local" id="iStart">
   <label for="iMeta">Meta de todos</label>
   <input type="number" id="iMeta" value="150" min="1">
-  <label class="chk"><input type="checkbox" id="iAdm" checked> No contar las ventas a nombre de Jonathan</label>
   <label class="chk"><input type="checkbox" id="iSnd" checked> Sonido</label>
+
+  <h4>Ranking de premios</h4>
+  <label for="iAlum">Alumnos y exalumnos que compiten — un nombre por renglón</label>
+  <textarea id="iAlum" rows="7" placeholder="Yosef Jaim Zonana&#10;David Lombroso&#10;…"></textarea>
+  <div class="btns"><button class="alt" id="bTodos">Poner a todos los que han vendido</button></div>
+  <div class="hint">Todas las ventas del día suman para la meta y salen en "Últimas ventas", sea de quien sea. El ranking y los premios son sólo para quien esté en esta lista, y cuentan todo lo que lleva vendido, no sólo lo de hoy. Vacía la lista y compiten todos menos la dirección.</div>
+
   <div class="btns"><button id="bSave">Guardar</button><button class="alt" id="bTest">Probar celebración</button><button class="alt" id="bFull">Pantalla completa</button></div>
   <div class="hint">La pantalla se actualiza sola cada 15 segundos. Lo que configures aquí se queda guardado en esta computadora.</div>
 </div>
@@ -242,7 +249,31 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
 
   /* ---------- utilidades ---------- */
   const inicioMs = () => new Date(S.inicio).getTime() || 0;
-  const cuenta = (v) => v.t >= inicioMs() && !(S.sinAdm && v.adm);
+
+  // DOS PREGUNTAS DISTINTAS, QUE ANTES ERAN UNA SOLA
+  //
+  // 1) ¿Suma para la meta del día y sale en "Últimas ventas"?
+  //    Todo lo que se venda ese día, de quien sea — incluida la dirección.
+  //    Antes se excluía al administrador y por eso los boletos de Jonathan
+  //    no aparecían ni contaban.
+  const cuenta = (v) => v.t >= inicioMs();
+
+  // 2) ¿Compite por los premios del vendedor?
+  //    Sólo alumnos y exalumnos de Or Barak. La lista vive en config.js para
+  //    que valga en cualquier computadora donde se abra la pantalla; el panel
+  //    (tecla B) la puede ajustar en el momento, sólo en esa computadora.
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/\s+/g, ' ').trim().toLowerCase();
+  function listaAlumnos() {
+    const de = (S.alumnos && S.alumnos.length) ? S.alumnos : (C.ALUMNOS || []);
+    return de.map(norm).filter(Boolean);
+  }
+  function compite(v) {
+    const l = listaAlumnos();
+    // Sin lista, el respaldo es "todos menos el administrador": más vale un
+    // ranking de más que un ranking vacío a media proyección.
+    return l.length ? l.indexOf(norm(v.v)) >= 0 : !v.adm;
+  }
   const enBoost = (v) => S.boost && v.t >= S.boost.ini && v.t <= S.boost.fin;
   const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function hace(t) { const m = Math.max(0, Math.round((Date.now() - t) / 60000)); return m < 1 ? 'ahorita' : m < 60 ? 'hace ' + m + ' min' : 'hace ' + Math.round(m / 60) + ' h'; }
@@ -264,7 +295,6 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   function avisar() {
     const el = $('aviso'), ini = inicioMs(), ahora = Date.now();
     const antes = ventas.filter((v) => v.t < ini).length;
-    const porAdm = ventas.filter((v) => v.t >= ini && S.sinAdm && v.adm).length;
     const partes = [];
 
     if (ini > ahora) {
@@ -281,9 +311,12 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
           hour: 'numeric', minute: '2-digit' }) + '</b>. Hay <b>' + antes +
         '</b> anteriores que no entran.');
     }
-    if (porAdm) {
-      partes.push('<b>' + porAdm + '</b> ventas del administrador están ocultas ' +
-        '(se apaga en el panel, tecla B).');
+    // Que nadie proyecte el ranking sin saber que está corriendo con la
+    // regla de respaldo en vez de con la lista de alumnos.
+    if (!listaAlumnos().length) {
+      partes.push('Falta la lista de alumnos y exalumnos: por ahora el ' +
+        'ranking muestra a <b>todos menos la dirección</b>. Se carga en el ' +
+        'panel, tecla <b>B</b>.');
     }
 
     el.hidden = !partes.length;
@@ -304,8 +337,13 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
 
     const boostVivo = S.boost && Date.now() < S.boost.fin;
     document.body.classList.toggle('boosting', !!boostVivo);
-    const base = boostVivo ? hoy.filter(enBoost) : hoy;
-    const totales = ranking(hoy);
+    // El ranking y los premios van sobre TODO lo que lleva vendido cada
+    // alumno, no sólo lo de hoy: quien ya vendió seis boletos la semana
+    // pasada llega al evento con seis, no con cero. El boost es la única
+    // excepción, porque es un reto de esa media hora.
+    const premiables = ventas.filter(compite);
+    const base = boostVivo ? premiables.filter(enBoost) : premiables;
+    const totales = ranking(premiables);
     const r = ranking(base).slice(0, 8);
     $('rTitle').textContent = boostVivo ? '⚡ Ranking del boost' : 'Ranking de vendedores';
     $('rank').innerHTML = r.length ? r.map((x, i) => {
@@ -332,7 +370,7 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
   }
 
   function cerrarBoost(b) {
-    const r = ranking(ventas.filter(cuenta).filter((v) => v.t >= b.ini && v.t <= b.fin));
+    const r = ranking(ventas.filter(compite).filter((v) => v.t >= b.ini && v.t <= b.fin));
     const top = r[0];
     const empate = top && r[1] && r[1].n === top.n;
     cola.unshift({ tipo: 'boostFin', titulo: '⚡ GANADOR DEL BOOST', nombre: top ? (empate ? '¡Empate!' : top.nombre) : 'Nadie vendió', l3: top ? (empate ? r.filter((x) => x.n === top.n).map((x) => x.nombre).join(' y ') + ' con ' + top.n : top.n + (top.n === 1 ? ' boleto' : ' boletos') + ' en el boost') : 'El próximo boost es su oportunidad', l4: b.premio ? 'Premio: ' + b.premio : '' });
@@ -362,11 +400,15 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
       if (vistos) ventas.forEach((v) => { if (!vistos.has(v.f) && cuenta(v)) nuevos.push(v); });
       vistos = new Set(ventas.map((v) => v.f));
       pintar();
-      const tot = ranking(ventas.filter(cuenta));
+      // Toda venta del día se celebra, sea de quien sea. Pero el renglón de
+      // premios sólo tiene sentido para quien compite: a la dirección no se
+      // le anuncia que "se ganó unos AirPods".
+      const tot = ranking(ventas.filter(compite));
       nuevos.sort((a, b) => a.t - b.t).forEach((v) => {
+        const juega = compite(v);
         const n = (tot.find((t) => t.nombre === v.v) || { n: 1 }).n;
-        const m = METAS.find((x) => x[0] === n);
-        cola.push({ tipo: 'venta', boost: enBoost(v), titulo: enBoost(v) ? '⚡ ¡VENTA EN BOOST!' : '¡BOLETO VENDIDO!', nombre: v.v, l3: 'Folio #' + v.f + (v.c ? ' · le vendió a ' + v.c : ''), l4: m ? '¡Llegó a ' + m[0] + ' boletos y se gana ' + m[2] + '! ' + m[1] : n === 1 ? '¡Su primer boleto!' : 'Lleva ' + n + ' boletos hoy' });
+        const m = juega ? METAS.find((x) => x[0] === n) : null;
+        cola.push({ tipo: 'venta', boost: enBoost(v), titulo: enBoost(v) ? '⚡ ¡VENTA EN BOOST!' : '¡BOLETO VENDIDO!', nombre: v.v, l3: 'Folio #' + v.f + (v.c ? ' · le vendió a ' + v.c : ''), l4: m ? '¡Llegó a ' + m[0] + ' boletos y se gana ' + m[2] + '! ' + m[1] : !juega ? '' : n === 1 ? '¡Su primer boleto!' : 'Lleva ' + n + ' boletos' });
       });
       siguienteCelebracion();
     } catch (e) { $('err').style.display = 'block'; }
@@ -374,16 +416,26 @@ canvas#fx{position:fixed;inset:0;pointer-events:none;z-index:21}
 
   /* ---------- panel ---------- */
   function llenarPanel() {
-    $('iStart').value = S.inicio; $('iMeta').value = S.meta; $('iAdm').checked = S.sinAdm; $('iSnd').checked = S.sonido;
+    $('iStart').value = S.inicio; $('iMeta').value = S.meta; $('iSnd').checked = S.sonido;
+    $('iAlum').value = ((S.alumnos && S.alumnos.length) ? S.alumnos : (C.ALUMNOS || [])).join('\n');
     $('iBName').value = S.boostNombre; $('iBPrize').value = S.boostPremio; $('iBMin').value = S.boostMin;
   }
   function leerPanel() {
-    S.inicio = $('iStart').value || DEF.inicio; S.meta = Number($('iMeta').value) || 150; S.sinAdm = $('iAdm').checked; S.sonido = $('iSnd').checked;
+    S.inicio = $('iStart').value || DEF.inicio; S.meta = Number($('iMeta').value) || 150; S.sonido = $('iSnd').checked;
+    S.alumnos = $('iAlum').value.split('\n').map((x) => x.trim()).filter(Boolean);
     S.boostNombre = $('iBName').value.trim() || DEF.boostNombre; S.boostPremio = $('iBPrize').value.trim(); S.boostMin = Math.max(1, Number($('iBMin').value) || 30);
   }
   const panel = $('panel');
   $('gear').onclick = () => { llenarPanel(); panel.classList.toggle('on'); };
   document.addEventListener('keydown', (e) => { if ((e.key === 'b' || e.key === 'B') && !/INPUT/.test(document.activeElement.tagName)) { llenarPanel(); panel.classList.toggle('on'); } if (e.key === 'Escape') panel.classList.remove('on'); });
+  // Atajo para armar la lista: trae a todos los que ya vendieron algo, menos
+  // la dirección, y de ahí se borran los que no son alumnos. Es mucho más
+  // rápido que escribir veinte nombres a mano.
+  $('bTodos').onclick = () => {
+    const vistosN = [];
+    ventas.forEach((v) => { if (!v.adm && v.v && vistosN.indexOf(v.v) < 0) vistosN.push(v.v); });
+    $('iAlum').value = vistosN.sort().join('\n');
+  };
   $('bSave').onclick = () => { leerPanel(); guardar(); vistos = null; cargar(); panel.classList.remove('on'); };
   $('bStart').onclick = () => {
     leerPanel();

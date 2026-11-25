@@ -21,6 +21,17 @@ window.RIFA = {
   FORM_VENDER_URL: 'https://forms.gle/18wzcdVxpph7ZfBd9',
   FORM_CONSULTA_URL: 'consulta/',
 
+  // Quiénes compiten por los premios del vendedor en la pantalla del evento.
+  // Sólo alumnos y exalumnos de Or Barak: los demás (maestros, papás, la
+  // dirección) sí suman para la meta del día y sí salen en "Últimas ventas",
+  // pero no aparecen en el ranking ni acumulan para AirPods, dron, etc.
+  //
+  // Los nombres van tal como quedan en la hoja COMPRADORES. No importan
+  // acentos ni mayúsculas. Si la lista se deja vacía, el ranking cae en su
+  // regla de respaldo: todos menos el administrador, para que nunca se vea
+  // vacío por un olvido.
+  ALUMNOS: [],
+
   // Número de permiso de la Dirección General de Juegos y Sorteos (SEGOB).
   // Se muestra en el pie de página cuando se llena.
   PERMISO_SEGOB: '',
