@@ -178,12 +178,21 @@
         <input id="fDedTexto" name="dedTexto" maxlength="90" placeholder="Ej. Moshe ben Sara" hidden>
       </div>
       <input type="text" id="fHp" name="web_hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:0;top:0;height:0;width:0;opacity:0;overflow:hidden;clip:rect(0 0 0 0);pointer-events:none">
+      <div class="field">
+        <label for="fCant">¿Cuántos boletos quieres?</label>
+        <div class="qty">
+          <button type="button" class="qty-btn" id="qMenos" aria-label="Un boleto menos">−</button>
+          <input id="fCant" name="cantidad" type="number" min="1" max="10" value="1" step="1" inputmode="numeric">
+          <button type="button" class="qty-btn" id="qMas" aria-label="Un boleto más">+</button>
+        </div>
+        <p class="hint">Se apartan todos de una vez. No tienes que volver a llenar nada.</p>
+      </div>
       <label class="consent">
         <input type="checkbox" id="fAcepto" required>
         <span>Acepto las <a href="#bases">bases del sorteo</a> y el aviso de privacidad.</span>
       </label>
       <div class="total">
-        <span>1 boleto</span>
+        <span id="totalLbl">1 boleto</span>
         <b id="totalVal">$6,000 MXN</b>
       </div>
       <button class="btn btn-block" id="payBtn" type="submit">

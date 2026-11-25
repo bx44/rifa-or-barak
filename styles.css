@@ -126,6 +126,21 @@ input.err{border-color:#d46a5c}
 .qty output{flex:1;text-align:center;font-size:20px;color:#fff;font-variant-numeric:tabular-nums}
 .consent{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--muted);margin:4px 0 20px;cursor:pointer}
 .consent input{width:18px;height:18px;padding:0;margin-top:3px;accent-color:var(--gold);flex:none}
+/* Selector de cantidad. Antes cada boleto exigía llenar el formulario
+   completo otra vez, y hubo quien lo hizo dos veces: los que no, se perdieron
+   sin dejar rastro. */
+.qty{display:flex;align-items:stretch;gap:0;max-width:200px}
+.qty-btn{width:52px;flex:0 0 52px;font-size:24px;line-height:1;cursor:pointer;
+  background:transparent;color:var(--gold,#C99B52);border:1px solid var(--line-soft);
+  border-radius:10px 0 0 10px;transition:background .15s,color .15s}
+.qty-btn:last-of-type{border-radius:0 10px 10px 0}
+.qty-btn:hover:not(:disabled){background:rgba(201,155,82,.14)}
+.qty-btn:disabled{opacity:.3;cursor:default}
+.qty input{flex:1 1 auto;min-width:0;text-align:center;border-radius:0;
+  border-left:0;border-right:0;-moz-appearance:textfield;appearance:textfield}
+.qty input::-webkit-outer-spin-button,.qty input::-webkit-inner-spin-button{
+  -webkit-appearance:none;margin:0}
+
 .total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line-soft);padding:18px 0 20px}
 .total span{letter-spacing:.24em;text-transform:uppercase;font-size:13px;color:var(--muted)}
 .total b{font-size:30px;font-weight:400;color:#fff}

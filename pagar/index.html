@@ -60,16 +60,100 @@
   $('wa').href = wa(C.WHATSAPP || '526572871690', T('Hola, tengo una duda sobre el pago de mi boleto de la Gran Rifa Or Barak 2026.'));
   const p = new URLSearchParams(location.search);
 
+  // La liga puede traer un boleto (f=60&t=abc) o varios, cada uno con su
+  // firma (f=60,61,62&t=abc,def,ghi). Se consulta uno por uno —el backend
+  // sólo sabe de folios sueltos— y aquí se suman.
+  const folios = String(p.get('f') || '').split(',').map((x) => x.trim()).filter(Boolean);
+  const firmas = String(p.get('t') || '').split(',').map((x) => x.trim());
+
   (async () => {
     try {
-      const q = new URLSearchParams({ accion: 'web', op: 'pagoinfo', f: p.get('f') || '', t: p.get('t') || '' });
-      const r = await (await fetch(C.API_URL + '?' + q.toString())).json();
-      if (!r.ok) { $('lead').textContent = r.error || T('No se pudo cargar tu boleto.'); return; }
-      render(r);
+      if (!folios.length) { $('lead').textContent = T('No se pudo cargar tu boleto.'); return; }
+
+      const rs = [];
+      for (let i = 0; i < folios.length; i++) {
+        const q = new URLSearchParams({ accion: 'web', op: 'pagoinfo', f: folios[i], t: firmas[i] || '' });
+        try {
+          const r = await (await fetch(C.API_URL + '?' + q.toString())).json();
+          if (r && r.ok) rs.push(r);
+        } catch (e) { /* se sigue con los demás */ }
+      }
+      if (!rs.length) { $('lead').textContent = T('No se pudo cargar tu boleto.'); return; }
+
+      // Un solo boleto sigue por el camino de siempre, intacto.
+      if (rs.length === 1) { render(rs[0]); return; }
+      renderGrupo(rs, folios.length);
     } catch (e) {
       $('lead').textContent = T('No se pudo conectar. Revisa tu internet y recarga la página.');
     }
   })();
+
+  /* ---------- varios boletos en un solo pago ---------- */
+  function renderGrupo(rs, pedidos) {
+    const r0 = rs[0];
+    const h1 = document.querySelector('h1');
+    if (h1) h1.textContent = T('Paga tus boletos');
+    const num = r0.whatsapp || C.WHATSAPP;
+    const pendientes = rs.filter((r) => r.saldo > 0);
+    const total = pendientes.reduce((a, r) => a + Number(r.saldo || 0), 0);
+    const nums = rs.map((r) => r.folio);
+    const lista = nums.join(', ');
+
+    let h = '<div class="card sum"><div><div class="eyebrow" style="margin:0 0 2px">' +
+      T('Tus folios') + '</div><div class="fol" style="font-size:clamp(20px,5vw,30px);line-height:1.25">' +
+      esc(lista) + '</div></div>' +
+      '<div class="amt"><span class="muted">' + T(total > 0 ? 'Total a pagar' : 'Pagado') + '</span><b>' +
+      money(total > 0 ? total : rs.reduce((a, r) => a + Number(r.pagado || 0), 0)) + '</b></div></div>';
+
+    if (pedidos && rs.length < pedidos) {
+      h += '<div class="card opt"><p>' + T('De los {p} boletos de esta liga sólo pudimos cargar {q}. Escríbenos por WhatsApp y lo revisamos.', { p: pedidos, q: rs.length }) + '</p></div>';
+    }
+
+    if (!(total > 0)) {
+      $('lead').textContent = T('Tus boletos ya están liquidados. ¡Mucha suerte!');
+      h += '<div class="card paid"><div class="big">✓</div><p>' + T('Ya participas en el sorteo del 10 de diciembre de 2026.') + '</p></div>';
+      $('app').innerHTML = h; $('app').hidden = false; return;
+    }
+
+    $('lead').textContent = T('Elige cómo quieres pagar tus {n} boletos. Participan cuando queden liquidados antes del sorteo.', { n: rs.length });
+
+    // Transferencia y efectivo son un solo movimiento por el total: es la
+    // forma más cómoda de pagar varios y por eso va primero.
+    h += '<div class="card opt"><h2>' + T('Transferencia') + '</h2><p>' +
+      T('Una sola transferencia de {m} por tus {n} boletos.', { m: money(total), n: pendientes.length }) + '</p>' +
+      dato(T('Beneficiario'), r0.beneficiario) + dato(T('Banco'), r0.banco) + dato(T('CLABE'), r0.clabe, true) +
+      dato(T('Concepto'), 'Rifa folios ' + lista, true) +
+      '<div class="btn-col"><a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' +
+      esc(wa(num, T('Hola, aquí está mi comprobante de transferencia de los boletos {f} de la Gran Rifa Or Barak 2026.', { f: lista }))) + '">' +
+      T('Enviar comprobante por WhatsApp') + '</a>' +
+      (r0.correoComprobantes ? '<a class="btn btn-ghost btn-block btn-sm" href="mailto:' + esc(r0.correoComprobantes) +
+        '?subject=' + encodeURIComponent(T('Comprobante boletos {f}', { f: lista })) + '">' + T('Enviar comprobante por correo') + '</a>' : '') +
+      '</div><p style="margin:12px 0 0;font-size:14px">' + T('Te llega un correo cuando tu pago quede registrado.') + '</p></div>';
+
+    h += '<div class="card opt"><h2>' + T('Efectivo') + '</h2><p>' +
+      T('Entrega {m} a quien te vendió los boletos. Pide que registren el pago de los folios {f}.', { m: money(total), f: lista }) + '</p>' +
+      '<a class="btn btn-ghost btn-block btn-sm" target="_blank" rel="noopener" href="' +
+      esc(wa(num, T('Hola, quiero pagar en efectivo mis boletos {f} de la Gran Rifa Or Barak 2026.', { f: lista }))) + '">' +
+      T('Coordinar pago en efectivo') + '</a></div>';
+
+    // Con tarjeta todavía va un cobro por boleto: el cobro está firmado folio
+    // por folio. Se dice de frente en vez de que se lleve la sorpresa.
+    const conTarjeta = pendientes.filter((r) => r.tarjetaUrl);
+    if (conTarjeta.length) {
+      h += '<div class="card opt"><h2>' + T('Tarjeta') + '</h2><p>' +
+        T('Por ahora la tarjeta se cobra boleto por boleto: son {n} pagos de esta misma página. Si prefieres uno solo, usa transferencia.', { n: conTarjeta.length }) + '</p><div class="btn-col">' +
+        conTarjeta.map(function (r, i) {
+          return '<a class="btn btn-ghost btn-block btn-sm" href="' + esc(r.tarjetaUrl) + '">' +
+            T('Pagar folio {f} — {m}', { f: r.folio, m: money(r.saldo) }) + '</a>';
+        }).join('') + '</div></div>';
+    }
+
+    $('app').innerHTML = h; $('app').hidden = false;
+    document.querySelectorAll('.copy').forEach((b) => b.addEventListener('click', () => {
+      const v = b.getAttribute('data-v');
+      (navigator.clipboard ? navigator.clipboard.writeText(v) : Promise.reject()).then(() => { b.textContent = T('Copiado'); setTimeout(() => (b.textContent = T('Copiar')), 1500); }).catch(() => {});
+    }));
+  }
 
   function render(r) {
     const num = r.whatsapp || C.WHATSAPP;

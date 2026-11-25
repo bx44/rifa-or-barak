@@ -184,19 +184,83 @@
     else { vendHint.textContent = ''; }
   }
 
-  const qty = 1;
+  /* ---------- cuántos boletos ---------- */
+  const MAX_CANT = 10;
+  const elCant = $('fCant');
+  const cantidad = () => Math.min(MAX_CANT, Math.max(1, Math.round(Number(elCant && elCant.value) || 1)));
+
+  function pintarTotal() {
+    const n = cantidad();
+    if (elCant) elCant.value = n;
+    const precio = Number(C.PRECIO) || 6000;
+    const lbl = $('totalLbl'), val = $('totalVal');
+    if (lbl) lbl.textContent = n === 1 ? T('1 boleto') : T('{n} boletos', { n: n });
+    if (val) val.textContent = '$' + (precio * n).toLocaleString('es-MX') + ' MXN';
+    const menos = $('qMenos'), mas = $('qMas');
+    if (menos) menos.disabled = n <= 1;
+    if (mas) mas.disabled = n >= MAX_CANT;
+  }
+  if (elCant) {
+    const mover = (d) => { elCant.value = cantidad() + d; pintarTotal(); };
+    if ($('qMenos')) $('qMenos').addEventListener('click', () => mover(-1));
+    if ($('qMas')) $('qMas').addEventListener('click', () => mover(1));
+    elCant.addEventListener('input', pintarTotal);
+    elCant.addEventListener('blur', pintarTotal);
+    pintarTotal();
+  }
+
   if (params.get('cancelado')) { $('formMsg').textContent = T('El pago no se completó. Puedes intentarlo de nuevo.'); }
 
   /* ---------- compra ---------- */
-  function showFolio(r) {
-    const f = String(r.folio).padStart(4, '0');
+
+  // Cada boleto se aparta con su propia llamada y regresa su liga de pago
+  // firmada. Para pagar todos juntos se juntan los folios y sus firmas en una
+  // sola liga: la página de pago las vuelve a separar y suma los saldos.
+  function urlDePago(rs) {
+    if (rs.length === 1) return rs[0].pagoUrl;
+    try {
+      const u = new URL(rs[0].pagoUrl, location.href);
+      const fs = [], ts = [];
+      rs.forEach((r) => {
+        const x = new URL(r.pagoUrl, location.href);
+        fs.push(x.searchParams.get('f') || '');
+        ts.push(x.searchParams.get('t') || '');
+      });
+      u.searchParams.set('f', fs.join(','));
+      u.searchParams.set('t', ts.join(','));
+      return u.toString();
+    } catch (e) {
+      return rs[0].pagoUrl;   // si algo sale raro, al menos que pague el primero
+    }
+  }
+
+  function showFolio(rs, pedidos) {
+    const lista = [].concat(rs);
+    const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const nums = lista.map((r) => String(r.folio).padStart(4, '0'));
     const ov = document.createElement('div');
     ov.className = 'folio-overlay';
-    const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    ov.innerHTML = '<div class="folio-card"><p class="eyebrow">' + T('Boleto apartado') + '</p><div class="tk-big"><small>' + T('Tu número') + '</small><b>' + f + '</b></div>' +
-      '<p>' + T('{n}, ahora elige cómo pagar: tarjeta, transferencia o efectivo…', { n: esc((r.nombre || '').split(' ')[0]) }) + '</p>' +
-      '<p class="muted small">' + T('También te enviamos tu número y tu liga de pago por correo.') + '</p>' +
-      '<a class="btn" href="' + esc(r.pagoUrl) + '">' + T('Ver formas de pago') + '</a></div>';
+
+    const titulo = lista.length === 1 ? T('Boleto apartado') : T('{n} boletos apartados', { n: lista.length });
+    const chico = lista.length > 2 ? ' style="font-size:clamp(28px,7vw,54px);letter-spacing:.02em"' : '';
+    const cuerpo = '<div class="tk-big"><small>' +
+      (lista.length === 1 ? T('Tu número') : T('Tus números')) + '</small><b' + chico + '>' +
+      nums.join('<span style="opacity:.4"> · </span>') + '</b></div>';
+
+    // Si se pidieron 3 y sólo salieron 2, se dice. Callarlo sería peor: el
+    // comprador cree que pagó por tres.
+    const incompleto = pedidos && lista.length < pedidos
+      ? '<p class="muted small" style="color:#e9b949">' +
+        T('Pediste {p} y sólo alcanzamos a apartar {q}. Si querías más, escríbenos.', { p: pedidos, q: lista.length }) +
+        '</p>' : '';
+
+    ov.innerHTML = '<div class="folio-card"><p class="eyebrow">' + titulo + '</p>' + cuerpo +
+      '<p>' + T('{n}, ahora elige cómo pagar: tarjeta, transferencia o efectivo…', { n: esc((lista[0].nombre || '').split(' ')[0]) }) + '</p>' +
+      incompleto +
+      '<p class="muted small">' + (lista.length === 1
+        ? T('También te enviamos tu número y tu liga de pago por correo.')
+        : T('También te enviamos tus números y tu liga de pago por correo.')) + '</p>' +
+      '<a class="btn" href="' + esc(urlDePago(lista)) + '">' + T('Ver formas de pago') + '</a></div>';
     document.body.appendChild(ov);
     requestAnimationFrame(() => ov.classList.add('show'));
   }
@@ -232,10 +296,24 @@
     payBtn.disabled = true; const label = payBtn.innerHTML; payBtn.textContent = T('Conectando con Stripe…');
     try {
       if (HAS_API) {
-        const r = await apiPost(data);
-        if (!r.ok) throw new Error(r.error || T('No se pudo registrar tu boleto.'));
-        showFolio(r);
-        setTimeout(() => { location.href = r.pagoUrl; }, 2600);
+        const n = cantidad();
+        // Uno por uno y en orden: si se mandaran en paralelo, dos llamadas
+        // pueden pelearse el mismo folio.
+        const hechos = [];
+        let fallo = null;
+        for (let i = 0; i < n; i++) {
+          if (n > 1) payBtn.textContent = T('Apartando el boleto {i} de {n}…', { i: i + 1, n: n });
+          try {
+            const r = await apiPost(data);
+            if (!r.ok) { fallo = r.error; break; }
+            hechos.push(r);
+          } catch (err) { fallo = err.message; break; }
+        }
+        // Si no salió ni uno, es un error de verdad. Si salieron algunos, se
+        // sigue con esos y se le dice cuántos quedaron.
+        if (!hechos.length) throw new Error(fallo || T('No se pudo registrar tu boleto.'));
+        showFolio(hechos, n);
+        setTimeout(() => { location.href = urlDePago(hechos); }, hechos.length > 1 ? 3800 : 2600);
         return;
       }
       // Respaldo sin backend: Payment Link de Stripe
