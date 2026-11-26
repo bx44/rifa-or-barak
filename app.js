@@ -371,18 +371,36 @@
     $('wallMore').hidden = muroShown >= muroItems.length;
   }
   $('wallMore').onclick = () => pintarMuro(12);
+  // El muro se vuelve a consultar solo cada 30 segundos (y al regresar a la
+  // pestaña). Si hay compras nuevas se repinta conservando cuántas tarjetas
+  // tenía abiertas la persona; si no cambió nada, sólo se actualiza el "hace X min".
+  let muroFirma = '';
   async function cargarMuro() {
     if (!HAS_API) return;
     try {
       const r = await apiGet('muro');
       if (!r.ok || !r.items.length) return;
-      muroItems = r.items;
+      const firma = r.total + '|' + r.items.map((i) => i.t + ':' + i.n + ':' + i.nombre).join(',');
       $('muro').hidden = false;
       $('wallCount').textContent = r.total === 1 ? T('1 persona ya tiene su boleto.') : T('{n} personas ya tienen su boleto.', { n: r.total });
-      pintarMuro(window.innerWidth < 700 ? 6 : 12);
+      const abiertas = Math.max(muroShown, window.innerWidth < 700 ? 6 : 12);
+      muroItems = r.items;
+      if (firma === muroFirma) {
+        // nada nuevo: sólo refrescar los tiempos
+        $('wallGrid').querySelectorAll('.wall-card').forEach((c, i) => {
+          const ts = c.querySelectorAll('.wall-time'); if (ts.length && muroItems[i]) ts[ts.length - 1].textContent = haceCuanto(muroItems[i].t);
+        });
+        return;
+      }
+      muroFirma = firma;
+      $('wallGrid').innerHTML = '';
+      muroShown = 0;
+      pintarMuro(abiertas);
     } catch (e) {}
   }
   cargarMuro();
+  setInterval(() => { if (!document.hidden) cargarMuro(); }, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) cargarMuro(); });
 
   /* ---------- herramientas de vendedor ---------- */
   const sCel = $('sCel');
